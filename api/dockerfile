@@ -1,0 +1,31 @@
+FROM python:3.10.13
+
+WORKDIR /app
+
+COPY . /app/
+
+
+RUN apt-get update
+# RUN apt-get update && apt-get install -y \
+    # cron 
+    # gdal-bin \
+    # libgdal-dev \
+    # nano
+
+RUN pip install --upgrade pip
+RUN pip install -r /app/requirements.txt
+RUN python manage.py makemigrations
+RUN python manage.py migrate
+RUN chmod +x run_spiders.py
+# COPY ./entrypoint.sh .
+# RUN sed -i 's/\r$//g' /app/entrypoint.sh
+# RUN chmod +x /app/entrypoint.sh
+
+# ENTRYPOINT ["/app/entrypoint.sh"]
+# RUN touch /app/cron.log
+# RUN chmod 666 /app/cron.log
+# RUN chmod +x /app/run_spiders.py
+# RUN chmod +x /app/run_spiders.sh
+# RUN chmod +x /app/command.sh
+
+# CMD ["python", "/code/app/api/manage.py", "runserver", "8001"]

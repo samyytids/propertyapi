@@ -1,0 +1,12 @@
+FROM ubuntu:latest
+
+# Install cron
+RUN apt-get update && apt-get -y install cron
+
+# Set up the cron job
+COPY crontab /etc/cron.d/spider-cron
+RUN chmod 0644 /etc/cron.d/spider-cron
+RUN crontab /etc/cron.d/spider-cron
+RUN touch /var/log/cron.log
+
+CMD cron && tail -f /var/log/cron.log
