@@ -98,7 +98,7 @@ elif sys.argv[1][0] == "e":
     
     for epc in epcs:
         mapper[epc[1]] = {"property_id": epc[0]}
-        if ".co.uk" in epc[1]:
+        if ".co.uk" in epc[1] or ".gov.uk" in epc[1]:
             continue
         urls.append(epc[1])
     
