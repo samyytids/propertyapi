@@ -89,6 +89,7 @@ class DataParser:
                 "un_published": not property_data.get("published"),
                 "scraped_before": True
             }
+            
         data = {}
         data["single"] = {}
         data["single"]["property_id"] = {"property_id":id}

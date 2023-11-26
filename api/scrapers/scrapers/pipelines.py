@@ -78,7 +78,7 @@ class ScrapersPipeline:
     
     def process_items_manually(self, item):
         for property in item:
-            if not property.get("analyticsInfo"):
+            if not property.get("props") and not property.get("analyticsInfo"):
                 self.removed.append(property["id"])
                 continue
             if property["scraped_before"]:

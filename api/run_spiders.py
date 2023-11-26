@@ -98,8 +98,10 @@ elif sys.argv[1][0] == "e":
     
     for epc in epcs:
         mapper[epc[1]] = {"property_id": epc[0]}
+        if ".co.uk" in epc[1]:
+            continue
         urls.append(epc[1])
-        
+    
     process.settings["ITEM_PIPELINES"] = {
         "scrapers.scrapers.pipelines.ScrapersPipeline": 100
     }

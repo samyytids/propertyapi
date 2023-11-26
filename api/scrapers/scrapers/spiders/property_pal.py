@@ -30,6 +30,7 @@ class PropertyPalSpider(BasespiderSpider):
         
         if len(self.data) % 100 == 0:
             try:
+                print("processing")
                 self.pipeline.process_items_manually(self.data)
                 self.data.clear()
             except Exception as e:                
