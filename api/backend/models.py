@@ -122,7 +122,7 @@ class PropertyValue(models.Model):
 ## One to Many
 
 class Prices(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE, max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE, max_length=20, to_field="property_id")
     price = models.IntegerField(null=True)
     price_date = models.DateField(null=True)
     price_qualifier = models.CharField(max_length = 255, null=True)
@@ -132,7 +132,7 @@ class Prices(models.Model):
         unique_together = [["property_id", "price"]]
 
 class KeyFeature(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20, to_field="property_id")
     key_feature = models.CharField(max_length=255, null=True)
     key_feature_text = models.CharField(max_length=255, null=True)
     
@@ -140,7 +140,7 @@ class KeyFeature(models.Model):
         unique_together = [["property_id", "key_feature"]]
 
 class Statuses(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20, to_field="property_id")
     status = models.BooleanField(default = False, null=True)
     status_date = models.DateField(null=True)
     
@@ -148,7 +148,7 @@ class Statuses(models.Model):
         unique_together = [["property_id", "status", "status_date"]]
 
 class Views(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20, to_field="property_id")
     views = models.IntegerField(null=True)
     unique_views = models.IntegerField(null=True)
     view_date = models.DateField(null=True)
