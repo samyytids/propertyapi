@@ -18,9 +18,9 @@ services:
   db:
     image: postgres:15
     environment:
-      - POSTGRES_USER=hello_django
-      - POSTGRES_PASSWORD=hello_django
-      - POSTGRES_DB=hello_django_dev
+      - POSTGRES_USER=samyytids
+      - POSTGRES_PASSWORD=Pokemon11
+      - POSTGRES_DB=property_api
     volumes:
       - postgres_data:/var/lib/postgresql/data
   
