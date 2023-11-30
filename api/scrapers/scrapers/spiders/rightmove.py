@@ -28,7 +28,7 @@ class RightmoveSpider(BasespiderSpider):
         json_data["id"] = property_id 
         json_data["scraped_before"] = db_data["scraped_before"]      
         self.count += 1
-        # print(f"Number of properties scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
+        print(f"Number of properties scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
         self.data.append(json_data)
         self.check_time_limit()
         

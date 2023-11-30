@@ -3,7 +3,6 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
-
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
 import django
@@ -18,7 +17,6 @@ django.setup()
 
 from backend.data_parser import DataParser
 from backend.models import *
-
 
 class ScrapersPipeline:
     def __init__(self):
@@ -91,7 +89,8 @@ class ScrapersPipeline:
             self.insert_test()
             self.update_removed()
             self.clear_data()
-        except:
+        except Exception as e:
+            print(e)
             self.clear_data()
     
     def process_epcs(self, item):
@@ -115,7 +114,7 @@ class ScrapersPipeline:
         for image in self.images:
             image_property = ImageProperty.objects.get(property=image["property"], image_id=image["image_id"])
             image_property.image_scraped = True
-            updates.append(image_property)            
+            updates.append(image_property)         
         
         Images.objects.bulk_create(
             [Images(
@@ -199,8 +198,6 @@ class ScrapersPipeline:
             ignore_conflicts=ignore
         )
         
-    
-    
     @staticmethod
     def one_to_many(table, property_data, name, ignore=False):        
         table.objects.bulk_create(
@@ -211,7 +208,6 @@ class ScrapersPipeline:
             ignore_conflicts=ignore
         )
         
-    
     def get_update_objects(self, table, id: str|None = None) -> list:
         if table == Property:
             things_to_update = []
@@ -236,7 +232,6 @@ class ScrapersPipeline:
                 for property in self.property_data
             ]
             for idx, update in enumerate(things_to_update):
-                update["property"]: PropertyValue
                 update["property"].text_elements = TextElements.objects.get(property_id=update["property"].property_id)
                 update["property"].location = Location.objects.get(property_id = update["property"].property_id)
                 update["property"].broadband = Broadband.objects.get(property_id = update["property"].property_id)
@@ -246,6 +241,7 @@ class ScrapersPipeline:
                 update["property"].tax = Tax.objects.get(property_id = update["property"].property_id)
                 update["property"].ownership = OwnershipRetirement.objects.get(property_id = update["property"].property_id)
                 update["property"].tenure = Tenure.objects.get(property_id = update["property"].property_id)
+                update["property"].added = Added.objects.get(property_id = update["property"].property_id)
                 if update["estate_agent"]["name"] is not None:
                     update["property"].estate_agent = EstateAgent.objects.get(**update["estate_agent"])
                 things_to_update[idx] = update["property"]
@@ -253,6 +249,7 @@ class ScrapersPipeline:
         return things_to_update
     
     def insert_test(self):
+        
         self.one_to_one_no_id(PropertyValue, self.property_data, "property_id", True)
         self.one_to_one(TextElements, self.property_data, "text_elements", True)
         self.one_to_one(OwnershipRetirement, self.property_data, "ownership_retirement", True)
@@ -263,6 +260,7 @@ class ScrapersPipeline:
         self.one_to_one(Layout, self.property_data, "layout", True)
         self.one_to_one(Tax, self.property_data, "tax", True)
         self.one_to_one(Tenure, self.property_data, "tenure", True)
+        self.one_to_one(Added, self.property_data, "added", True)
         self.one_to_one_list_no_id(Station, self.stations, "stations", True)
         self.one_to_one_list_no_id(Accreditation, self.accreditations, "accreditations", True)
         self.one_to_many(ImageProperty, self.images, "images", True)
@@ -273,7 +271,6 @@ class ScrapersPipeline:
         self.one_to_many(Rooms, self.rooms, "rooms", True)
         self.one_to_many(Prices, self.prices, "prices", True)
         self.one_to_many(Statuses, self.statuses, "statuses", True)
-        
         EstateAgentAccreditation.objects.bulk_create(
             [EstateAgentAccreditation(
                 estate_agent_id = EstateAgent.objects.get(
@@ -312,6 +309,7 @@ class ScrapersPipeline:
                 "ownership",
                 "tenure",
                 "estate_agent",
+                "added",
             ]
         )
         properties = self.get_update_objects(Property)

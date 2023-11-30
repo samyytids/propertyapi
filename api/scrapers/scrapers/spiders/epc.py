@@ -1,11 +1,8 @@
 import scrapy
 from bs4 import BeautifulSoup
 from spiders.basespider import BasespiderSpider
-from itemadapter import ItemAdapter
-from scrapy.exceptions import CloseSpider
 import fitz
 import re
-from fitz.fitz import EmptyFileError, FileDataError
 
 
 class EpcSpider(BasespiderSpider):
@@ -17,10 +14,20 @@ class EpcSpider(BasespiderSpider):
     
     def parse(self, response, **kwargs):
         data = response.meta.get("db_data")
-        if "pdf" in response.url:
+        if any(
+            substring in response.url for substring in [
+                "jupix", "Document", "kea.pmp",
+                "ewemove", ".pdf"
+                ]
+            ):
             data["scraped_info"] = self.parse_pdf(response)
+            
+        elif ".gov.uk" in response.url:
+            data["scraped_info"] = self.parse_gov(response)
+            
         else:
             data["scraped_info"] = self.parse_image(response)
+            
         self.data.append(data)
         
         self.count += 1
@@ -40,6 +47,27 @@ class EpcSpider(BasespiderSpider):
             "epc_image" : response.body,
             "epc_scraped" : True
         }
+        
+    def parse_gov(self, response):
+        soup = BeautifulSoup(response.body, "html.parser")
+        epc_current = soup.find(attrs={"class": "rating-current rating-label"})
+        if epc_current:
+            epc_current = epc_current.find(attrs={"class":"govuk-!-font-weight-bold"})
+            if epc_current:
+                epc_current = epc_current.text.split(" ")[0]
+        
+        epc_potential = soup.find(attrs={"class": "rating-potential rating-label"})
+        if epc_potential:
+            epc_potential = epc_potential.find(attrs={"class":"govuk-!-font-weight-bold"})
+            if epc_potential:
+                epc_potential = epc_potential.text.split(" ")[0]
+        
+        return {
+            "epc_current" : epc_current,
+            "epc_potential" : epc_potential,
+            "epc_scraped" : True
+        }
+        
 
     def parse_pdf(self, response):
         try:
@@ -65,6 +93,11 @@ class EpcSpider(BasespiderSpider):
                     epc_potential = int(item.split(" ")[0])
                     instances += 1
                     break
+                
+        if epc_current and epc_potential:
+            if epc_current > epc_potential:
+                epc_current, epc_potential = epc_potential, epc_current
+        
         return {
             "epc_current" : epc_current,
             "epc_potential" : epc_potential,

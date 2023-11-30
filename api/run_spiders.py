@@ -7,9 +7,6 @@ sys.path.append(project_root)
 os.environ['DJANGO_SETTINGS_MODULE'] = 'api.settings'
 django.setup()
 
-from scrapy.spiders import XMLFeedSpider
-from scrapy.selector import Selector
-from scrapy import Request
 from backend.models import *
 from scrapers.scrapers.spiders.sitemap import SitemapSpider
 from scrapers.scrapers.spiders.property_pal import PropertyPalSpider
@@ -18,6 +15,7 @@ from scrapers.scrapers.spiders.image import ImageSpider
 from scrapers.scrapers.spiders.epc import EpcSpider
 from scrapy.crawler import CrawlerProcess
 from django.db.models import Q
+from pre_scrape_epcs import pre_scrape_epcs
 
 process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
@@ -26,6 +24,24 @@ process = CrawlerProcess(settings={
         "CONCURRENT_REQUESTS" : 16,
     })
 
+def images_test():
+    filter = Q(image_scraped = False)
+    images = ImageProperty.objects.filter(filter).values_list("image_url", "image_id", "property")
+    mapper = {}
+    urls = []
+    
+    for image in images:
+        mapper[image[0]] = {"property": image[2], "image_id": image[1], "composite_id": f'{image[2]}_{image[1]}'}
+        urls.append(image[0])
+        
+    process.settings["ITEM_PIPELINES"] = {
+        "scrapers.scrapers.pipelines.ScrapersPipeline": 100
+    }
+    num_urls = len(urls)
+    process.crawl(ImageSpider, mapper=mapper, start_urls=urls, num_urls=num_urls)
+    list(images).clear()
+    
+    
 if sys.argv[1][0] == "s":
     
     process.crawl(SitemapSpider)
@@ -73,34 +89,30 @@ elif sys.argv[1][0] == "r":
     process.crawl(RightmoveSpider, mapper=mapper, start_urls=urls, num_urls=num_urls)
 
 elif sys.argv[1][0] == "i":
-    filter = Q(image_scraped = False)
-    images = ImageProperty.objects.filter(filter).values_list("image_url", "image_id", "property")
-    mapper = {}
-    urls = [
-        
-    ]
-    for image in images:
-        mapper[image[0]] = {"property": image[2], "image_id": image[1], "composite_id": f'{image[2]}_{image[1]}'}
-        urls.append(image[0])
-        
-    process.settings["ITEM_PIPELINES"] = {
-        "scrapers.scrapers.pipelines.ScrapersPipeline": 100
-    }
-    
-    num_urls = len(urls)
-    process.crawl(ImageSpider, mapper=mapper, start_urls=urls, num_urls=num_urls)
+    images_test()
 
 elif sys.argv[1][0] == "e":
+    pre_scrape_epcs()
+    
     filter = Q(epc_scraped=False) & Q(epc_url__isnull=False)
     epcs = EPC.objects.filter(filter).values_list("property_id", "epc_url")
     mapper = {}
     urls = []
-    
     for epc in epcs:
         mapper[epc[1]] = {"property_id": epc[0]}
-        if ".co.uk" in epc[1] or ".gov.uk" in epc[1]:
+        if any(
+            substring in epc[1] for substring in [
+                    "jupix", "Document", "kea.pmp",
+                    "ewemove", ".pdf", ".gov.uk",
+                    ".png", ".jpeg", ".jpg",
+                    ".JPG", ".PNG", ".JPEG"
+                ]
+            ):
+            
+            urls.append(epc[1])
+            
+        elif ".co.uk" in epc[1]:
             continue
-        urls.append(epc[1])
     
     process.settings["ITEM_PIPELINES"] = {
         "scrapers.scrapers.pipelines.ScrapersPipeline": 100
@@ -111,8 +123,8 @@ elif sys.argv[1][0] == "e":
     
 
 elif sys.argv[1][0] == "T":
-    filter = Q(un_published = True)
-    for item in Property.objects.filter(filter):
-        print(item.property)
+    locations = Location.objects.all()
+    for item in locations:
+        print(item.postcode)
 
 process.start()

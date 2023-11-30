@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-import json
-
+from backend.models import PropertyValue, Property
 class DataParser:
     def parse(self, initial_data: dict, id: str) -> dict:
         if id[0] == "R":
@@ -32,6 +31,7 @@ class DataParser:
             accreditations_list = []
             
             views = [{}]
+            added = analytics_property.get("added")
             key_features = property_data.get("keyFeatures", []) or []
             images = {
                 "images" : property_data.get("images", []) or [],
@@ -107,6 +107,10 @@ class DataParser:
         data["single"]["tenure"] = self.extract_tenure(tenure, id)
         data["single"]["estate_agent"] = self.extract_estate_agent(estate_agent, id)
         data["views"] = self.extract_views(views, id)
+        if id[0] == "P":
+            added = data["views"]
+        data["single"]["added"] = self.extract_added_date(added, id)
+        
         data["key_features"]  = self.extract_key_features(key_features, id)
         data["images"], data["floorplans"] = self.extract_images(images, id)
         data["rooms"] = self.extract_rooms(rooms, id)
@@ -136,7 +140,7 @@ class DataParser:
             }
             statuses = analytics_property
             property_updates = {
-                "property_id": id,
+                "property_id": PropertyValue(property_id = id),
                 "un_published": not property_data.get("status", {}).get("published"),
                 "scraped_before": True
             }
@@ -146,7 +150,7 @@ class DataParser:
             prices = property_data.get("history", []) or []
             statuses = property_data.get("history", []) or []
             property_updates = {
-                "property_id": id,
+                "property_id": PropertyValue(property_id = id),
                 "un_published": not property_data.get("published"),
                 "scraped_before": True
             }
@@ -398,6 +402,27 @@ class DataParser:
         }
     
     @staticmethod
+    def extract_added_date(data: dict, id: str) -> dict:
+        added_date = None
+                
+        if id[0] == "R":
+            added_date =  data
+            if added_date:
+                added_date = datetime.strptime(added_date, "%Y%m%d")
+                added_date = added_date.strftime("%Y-%m-%d")
+                
+        else:
+            for idx, item in enumerate(data):
+                if not item["published"]:
+                    added_date = data[idx-1]["view_date"]
+                    break
+                added_date = item["view_date"]
+            
+        return {
+            "added_date" : added_date
+        }
+    
+    @staticmethod
     def extract_ownership(data: dict, id: str) -> dict:
         ownership = None
         
@@ -489,7 +514,7 @@ class DataParser:
             history = data.get("history", []) or []
             for view_data in history:
                 views = {}
-                views["view_id"] = id
+                views["property_id"] = PropertyValue(property_id=id)
                 views["view_date"] = view_data["date"].split("T")[0]
                 views["unique_views"] = view_data["totalUniqueViews"]
                 views["views"] = view_data["totalViews"]
@@ -508,7 +533,7 @@ class DataParser:
             for feature in data:
                 key_features.append(
                     {
-                        "key_feature_id" : id,
+                        "property_id" : PropertyValue(property_id = id),
                         "key_feature": feature
                     }
                 )
@@ -517,7 +542,7 @@ class DataParser:
             for feature in data:
                 key_features.append(
                     {
-                        "key_feature_id" : id,
+                        "property_id" : PropertyValue(property_id = id),
                         "key_feature" : feature["name"],
                         "key_feature_text" : feature["text"]
                     }
@@ -589,7 +614,7 @@ class DataParser:
                 
                 rooms_list.append(
                         {
-                            "room_id" : id,
+                            "property_id" : PropertyValue(property_id = id),
                             "room_name" : room_name,
                             "room_description" : room_description,
                             "room_width" : room_width,
@@ -669,15 +694,18 @@ class DataParser:
                 if price_date:
                     price_date = f"{price_date[0:4]}-{price_date[4:6]}-{price_date[6:]}"
             
-            if price_date == "":
-                price_date = None
+            if price_date == "" or price_date is None:
+                price_date = data["analytics_property"].get("added")
+                
+                if price_date:
+                    price_date = f"{price_date[0:4]}-{price_date[4:6]}-{price_date[6:]}"
             
             price = data["analytics_property"].get("price")
             price_qualifier = data["analytics_property"].get("priceQualifier")
             
             prices.append(
                     {
-                        "price_id" : id,
+                        "property_id" : PropertyValue(property_id = id),
                         "price" : price,
                         "price_date" : price_date,
                         "price_qualifier" : price_qualifier,
@@ -701,7 +729,7 @@ class DataParser:
                 
                 prices.append(
                     {
-                        "price_id" : id,
+                        "property_id" : PropertyValue(property_id = id),
                         "price" : price,
                         "price_date" : price_date,
                         "price_qualifier" : price_qualifier,
@@ -731,7 +759,7 @@ class DataParser:
 
                 statuses.append(
                     {
-                        "status_id" : id,
+                        "property_id" : PropertyValue(property_id = id),
                         "status" : status,
                         "status_date" : status_date,
                     }
@@ -749,7 +777,7 @@ class DataParser:
                 
                 statuses.append(
                     {
-                        "status_id" : id,
+                        "property_id" : PropertyValue(property_id = id),
                         "status" : status,
                         "status_date" : status_date,
                     }

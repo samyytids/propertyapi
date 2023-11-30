@@ -1,3 +1,4 @@
 *.png
 .git
 *.sqlite3
+*.json

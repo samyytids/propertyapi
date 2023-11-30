@@ -1,17 +1,17 @@
 from django.db import models
-
+import json
 # Data tables
 
 ## One to one
 
 class TextElements(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     description = models.TextField(null=True)
     share_text = models.TextField(null=True)
     share_description = models.TextField(null=True)
 
 class Broadband(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     standard_upload = models.DecimalField(max_digits=6, decimal_places=2, null=True)
     standard_download = models.DecimalField(max_digits=6, decimal_places=2, null=True)
     super_fast_upload = models.DecimalField(max_digits=6, decimal_places=2, null=True)
@@ -20,7 +20,7 @@ class Broadband(models.Model):
     ultra_fast_download = models.DecimalField(max_digits=6, decimal_places=2, null=True)
 
 class Tax(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     tax_band = models.CharField(max_length=20,null=True)
     tax_exempt = models.BooleanField(null=True)
     tax_included = models.BooleanField(null=True)
@@ -31,18 +31,18 @@ class Tax(models.Model):
     domestic_rates = models.DecimalField(max_digits=20, decimal_places=10, null=True)
 
 class OwnershipRetirement(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     ownership_type = models.BooleanField(null=True)
     retirement_home = models.BooleanField(null=True)
 
 class Tenure(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     tenure_type = models.CharField(max_length=20,null=True)
     tenure_lease_years = models.IntegerField(null=True)
     tenure_text = models.TextField(null=True)
     
 class EPC(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     epc_url = models.URLField(max_length=255, null=True)
     epc_scraped = models.BooleanField(default=False)
     epc_current = models.IntegerField(null=True)
@@ -50,7 +50,7 @@ class EPC(models.Model):
     epc_image = models.ImageField(upload_to="epc_image/", null=True)
 
 class Location(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     country = models.CharField(max_length=255, null=True)
     town = models.CharField(max_length=255, null=True)
     postcode = models.CharField(max_length=8, null=True)
@@ -60,7 +60,7 @@ class Location(models.Model):
     long = models.DecimalField(max_digits=20, decimal_places=10, null=True)
 
 class Layout(models.Model):
-    property_id = models.CharField(max_length=20, unique=True)
+    property_id = models.CharField(max_length=20, primary_key=True)
     bathrooms = models.IntegerField(null=True)
     bedrooms = models.IntegerField(null=True)
     receptions = models.IntegerField(null=True)
@@ -73,6 +73,9 @@ class ListingType(models.Model):
     listing_type = models.CharField(max_length=30, null=True)
     letting_type = models.CharField(max_length=50, null=True)
 
+class Added(models.Model):
+    property_id = models.CharField(max_length=20, primary_key=True)
+    added_date = models.DateField(null=True)
 
 ## Many to one
 
@@ -96,7 +99,7 @@ class EstateAgent(models.Model):
 
     class Meta:
         unique_together = [["name", "branch_name"]]
-
+        
         
 # Link tables
 
@@ -111,49 +114,41 @@ class PropertyValue(models.Model):
     tax = models.OneToOneField(Tax, on_delete=models.CASCADE, related_name="tax_id", null=True)
     ownership = models.OneToOneField(OwnershipRetirement, on_delete=models.CASCADE, related_name="ownership_id", null=True)
     tenure = models.OneToOneField(Tenure, on_delete=models.CASCADE, related_name="tenure_id", null=True)
+    added = models.OneToOneField(Added, on_delete=models.CASCADE, related_name="added_id", null=True)
     estate_agent = models.ForeignKey(EstateAgent, on_delete=models.CASCADE, related_name="estate_agent", null=True)
-    
-    # views = models.ForeignKey(Views, on_delete=models.CASCADE, related_name="views_id")
-    # key_features = models.ForeignKey(KeyFeature, on_delete=models.CASCADE, related_name="key_features_id")
-    # images = models.ForeignKey(Images, on_delete=models.CASCADE, related_name="images_id")
-    # floorplans = models.ForeignKey(Floorplans, on_delete=models.CASCADE, related_name="floorplans_id")
-    # rooms = models.ForeignKey(Rooms, on_delete=models.CASCADE, related_name="rooms_id")
-    # prices = models.ForeignKey(Prices, on_delete=models.CASCADE, related_name="prices_id")
-    # statuses = models.ForeignKey(Statuses, on_delete=models.CASCADE, related_name="statuses_id")
-    
     stations = models.ManyToManyField(Station, through="StationStationDistance")
 
 
 ## One to Many
 
 class Prices(models.Model):
-    price_id = models.CharField(max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE, max_length=20)
     price = models.IntegerField(null=True)
     price_date = models.DateField(null=True)
     price_qualifier = models.CharField(max_length = 255, null=True)
     price_type = models.CharField(max_length = 255, null=True)
     
     class Meta:
-        unique_together = [["price_id", "price"]]
+        unique_together = [["property_id", "price"]]
 
 class KeyFeature(models.Model):
-    key_feature_id = models.CharField(max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20)
     key_feature = models.CharField(max_length=255, null=True)
     key_feature_text = models.CharField(max_length=255, null=True)
     
     class Meta:
-        unique_together = [["key_feature_id", "key_feature"]]
+        unique_together = [["property_id", "key_feature"]]
 
 class Statuses(models.Model):
-    status_id = models.CharField(max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20)
     status = models.BooleanField(default = False, null=True)
     status_date = models.DateField(null=True)
     
     class Meta:
-        unique_together = [["status_id", "status", "status_date"]]
+        unique_together = [["property_id", "status", "status_date"]]
 
 class Views(models.Model):
-    view_id = models.CharField(max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20)
     views = models.IntegerField(null=True)
     unique_views = models.IntegerField(null=True)
     view_date = models.DateField(null=True)
@@ -162,12 +157,12 @@ class Views(models.Model):
     published = models.BooleanField(null=True)
     
     class Meta:
-        unique_together = [["view_id", "view_date"]]
+        unique_together = [["property_id", "view_date"]]
 
 class Images(models.Model):
     composite_id = models.CharField(max_length=25, primary_key=True)
     image_file = models.ImageField(upload_to="image/", null=True) # think about using imagefield
-    image_file_resized = models.ImageField(upload_to="image/", null=True) # think about using imagefield
+    image_file_resized = models.ImageField(upload_to="image/", null=True) # think about using imagefield]
 
 class Floorplans(models.Model):
     composite_id = models.CharField(max_length=25, primary_key=True)
@@ -175,7 +170,7 @@ class Floorplans(models.Model):
     floorplan_file_resized = models.ImageField(upload_to="floorplan/", null=True) # think about using floorplanfield
 
 class Rooms(models.Model):
-    room_id = models.CharField(max_length=20)
+    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE)
     room = models.IntegerField(null=True) # derived from the idx in the property floorplan list
     room_name = models.CharField(max_length=255, null=True)
     room_description = models.TextField(null=True)
@@ -184,7 +179,25 @@ class Rooms(models.Model):
     room_unit = models.CharField(max_length=10, null=True)
     
     class Meta:
-        unique_together = [["room_id", "room"]]
+        unique_together = [["property_id", "room"]]
+
+# class TestManager(models.Manager):
+    
+    
+#     def append_new_items(self, new_list):
+#         for item in new_list:
+#             if item not in 
+        
+# class TestModel(models.Model):
+#     id = models.CharField(max_length=100, primary_key=True)
+#     list_field = models.JSONField()
+    
+#     objects = TestManager()
+    
+#     @classmethod
+#     def update(cls, id, new_list):
+#         test_model = cls(id=id, list_field=new_list)
+#         return test_model
 
 
 
