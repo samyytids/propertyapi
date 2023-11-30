@@ -18,20 +18,11 @@ services:
   db:
     image: postgres:15
     environment:
-      - SQL_USER=samyytids
-      - SQL_PASSWORD=Pokemon11
-      - SQL_DB=property_api
+      - POSTGRES_USER=samyytids
+      - POSTGRES_PASSWORD=Pokemon11
+      - POSTGRES_DB=property_api
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  
-  # cron:
-  #   build:
-  #     context: ./cron
-  #     dockerfile: dockerfile
-  #   volumes:
-  #     - ./cron/run_spiders.sh:/app/run_spiders.sh
-  #   depends_on:
-  #     - api
 
 volumes:
   postgres_data:
