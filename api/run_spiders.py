@@ -123,8 +123,24 @@ elif sys.argv[1][0] == "e":
     
 
 elif sys.argv[1][0] == "T":
-    locations = Location.objects.all()
-    for item in locations:
-        print(item.postcode)
+    filter = (Q(property__icontains="R") & Q(scraped_before = True))
+    properties = Property.objects.filter(filter).values_list("property", "url", "scraped_before")
+    properties = sorted(properties, key=lambda x: x[2])
+    mapper = {}
+    urls = []
+    
+    for property in properties:
+        mapper[property[1]] = {
+            "property_id": property[0],
+            "scraped_before": property[2],
+        }
+        urls.append(property[1])
+    
+    process.settings["ITEM_PIPELINES"] = {
+        "scrapers.scrapers.pipelines.ScrapersPipeline": 100
+    }
+    
+    num_urls = len(urls)
+    process.crawl(RightmoveSpider, mapper=mapper, start_urls=urls, num_urls=num_urls)
 
 process.start()

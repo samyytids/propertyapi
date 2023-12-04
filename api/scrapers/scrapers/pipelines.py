@@ -83,8 +83,11 @@ class ScrapersPipeline:
                 data = self.parser.parse_update(property, property["id"])
                 self.store_update_data(data)
             else:
+                print(1)
                 data = self.parser.parse(property, property["id"])
+                print(2)
                 self.store_data(data)
+                print(3)
         try:
             self.insert_test()
             self.update_removed()
@@ -212,12 +215,12 @@ class ScrapersPipeline:
         if table == Property:
             things_to_update = []
             for idx, property in enumerate(self.properties):
-                property_obj: Property = table.objects.get(property = property["property_id"])
+                property_obj: Property = table.objects.get(property = property["property_id"].property_id)
                 
                 property_obj.un_published = property["un_published"]
                 property_obj.scraped_before = property["scraped_before"]
                 property_obj.stc = property["stc"]
-                property_obj.property_values = PropertyValue.objects.get(property_id = property["property_id"])
+                property_obj.property_values = PropertyValue.objects.get(property_id = property["property_id"].property_id)
                 things_to_update.append(property_obj)
                 
         else:
@@ -249,7 +252,6 @@ class ScrapersPipeline:
         return things_to_update
     
     def insert_test(self):
-        
         self.one_to_one_no_id(PropertyValue, self.property_data, "property_id", True)
         self.one_to_one(TextElements, self.property_data, "text_elements", True)
         self.one_to_one(OwnershipRetirement, self.property_data, "ownership_retirement", True)
@@ -284,7 +286,6 @@ class ScrapersPipeline:
             ) for accreditation in self.have_accreditations],
             ignore_conflicts=True
         )
-        
         StationStationDistance.objects.bulk_create(
             [StationStationDistance(
                 property_id = PropertyValue(property_id = station["property_id"]),
@@ -294,7 +295,6 @@ class ScrapersPipeline:
             ) for station in self.station_distances],
             ignore_conflicts=True
         )
-        
         property_values = self.get_update_objects(PropertyValue, "property_id")
         PropertyValue.objects.bulk_update(
             property_values,
