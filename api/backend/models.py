@@ -216,8 +216,8 @@ class EstateAgentAccreditation(models.Model):
 class StationStationDistance(models.Model):
     property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE)
     station_id = models.ForeignKey(Station, on_delete=models.CASCADE, related_name="station_id")
-    station_distance = models.DecimalField(max_digits=20, decimal_places=16)
-    station_distance_units = models.CharField(max_length=20, null=True)
+    station_distance = models.DecimalField(max_digits=30, decimal_places=16)
+    station_distance_units = models.CharField(max_length=30, null=True)
     
     class Meta:
         unique_together = [["property_id", "station_id"]]

@@ -35,7 +35,7 @@ def images_test():
         urls.append(image[0])
         
     process.settings["ITEM_PIPELINES"] = {
-        "scrapers.scrapers.pipelines.ScrapersPipeline": 100
+        "scrapers.scrapers.pipelines.ImagePipeline": 100
     }
     num_urls = len(urls)
     process.crawl(ImageSpider, mapper=mapper, start_urls=urls, num_urls=num_urls)
@@ -61,7 +61,8 @@ elif sys.argv[1][0] == "p":
         urls.append(property[1])
     
     process.settings["ITEM_PIPELINES"] = {
-        "scrapers.scrapers.pipelines.ScrapersPipeline": 100
+        "scrapers.scrapers.pipelines.InsertPipeline": 100,
+        "scrapers.scrapers.pipelines.UpdatePipeline": 200,
     }
     
     num_urls = len(urls)
@@ -82,7 +83,8 @@ elif sys.argv[1][0] == "r":
         urls.append(property[1])
     
     process.settings["ITEM_PIPELINES"] = {
-        "scrapers.scrapers.pipelines.ScrapersPipeline": 100,
+        "scrapers.scrapers.pipelines.InsertPipeline": 100,
+        "scrapers.scrapers.pipelines.UpdatePipeline": 200,
     }
     
     num_urls = len(urls)
@@ -115,7 +117,7 @@ elif sys.argv[1][0] == "e":
             continue
     
     process.settings["ITEM_PIPELINES"] = {
-        "scrapers.scrapers.pipelines.ScrapersPipeline": 100
+        "scrapers.scrapers.pipelines.EpcPipeline": 100
     }
     
     num_urls = len(urls)
@@ -137,7 +139,8 @@ elif sys.argv[1][0] == "T":
         urls.append(property[1])
     
     process.settings["ITEM_PIPELINES"] = {
-        "scrapers.scrapers.pipelines.ScrapersPipeline": 100
+        "scrapers.scrapers.pipelines.InsertPipeline": 100,
+        "scrapers.scrapers.pipelines.UpdatePipeline": 200,
     }
     
     num_urls = len(urls)

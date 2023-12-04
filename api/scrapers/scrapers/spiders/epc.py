@@ -28,19 +28,19 @@ class EpcSpider(BasespiderSpider):
         else:
             data["scraped_info"] = self.parse_image(response)
             
-        self.data.append(data)
+        self.insert_data.append(data)
         
         self.count += 1
         print(f"Number of imagess scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
         self.check_time_limit()
         
-        if len(self.data)%100 == 0:
+        if len(self.insert_data)%100 == 0:
             try:
-                self.pipeline.process_epcs(self.data)
-                self.data.clear()
+                self.epc_pipeline.process_items_manually(self.insert_data)
+                self.insert_data.clear()
             except Exception as e:                
                 print(e)
-                self.data.clear()
+                self.insert_data.clear()
 
     def parse_image(self, response):
         return {
@@ -109,9 +109,9 @@ class EpcSpider(BasespiderSpider):
     
     def close_spider(self, reason):
         try:
-            self.pipeline.process_epcs(self.data)
-            self.data.clear()
+            self.epc_pipeline.process_items_manually(self.insert_data)
+            self.insert_data.clear()
         except Exception as e:                
             print(e)
-            self.data.clear()
+            self.insert_data.clear()
         

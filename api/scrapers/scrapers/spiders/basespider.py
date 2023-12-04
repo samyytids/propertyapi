@@ -1,6 +1,6 @@
 import scrapy
 from abc import ABC, abstractmethod
-from pipelines import ScrapersPipeline
+from pipelines import InsertPipeline, UpdatePipeline, EpcPipeline, ImagePipeline
 import time
 from scrapy.exceptions import CloseSpider
 
@@ -17,8 +17,12 @@ class BasespiderSpider(ABC, scrapy.Spider):
         self.mapper = kwargs.get("mapper", {})
         self.num_urls = kwargs.get("num_urls", 0)
         self.count = 0
-        self.data = []
-        self.pipeline = ScrapersPipeline()
+        self.insert_data = []
+        self.update_data = []
+        self.insert_pipeline = InsertPipeline()
+        self.update_pipeline = UpdatePipeline()
+        self.epc_pipeline = EpcPipeline()
+        self.image_pipeline = ImagePipeline()
         self.start_time = time.time()
     
     def start_requests(self):
@@ -37,8 +41,10 @@ class BasespiderSpider(ABC, scrapy.Spider):
         self.close_spider(reason)
     
     def close_spider(self, reason):
-        self.pipeline.process_items_manually(self.data)
-        self.data.clear()
+        self.insert_pipeline.process_items_manually(self.insert_data)
+        self.update_pipeline.process_items_manually(self.update_data)
+        self.insert_data.clear()
+        self.update_data.clear()
         if (time.time() - self.start_time)/60 > 0.25:
             raise CloseSpider(f"It's fucked mate: {reason}")
         

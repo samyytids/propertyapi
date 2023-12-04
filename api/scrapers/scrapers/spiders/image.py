@@ -10,27 +10,27 @@ class ImageSpider(BasespiderSpider):
     def parse(self, response):
         data = response.meta.get("db_data")
         data["image_binary"] = response.body
-        self.data.append(data)
+        self.insert_data.append(data)
         self.count += 1
         print(f"Number of imagess scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
         self.check_time_limit()
         
-        if self.count % 1000 == 0:
+        if self.count % 100 == 0:
             try:
-                self.pipeline.process_image(self.data)
-                self.data.clear()
+                self.image_pipeline.process_items_manually(self.insert_data)
+                self.insert_data.clear()
             except Exception as e:                
                 print(e)
-                self.data.clear()
+                self.insert_data.clear()
         
     def closed(self, reason):
         self.close_spider(reason)
     
     def close_spider(self, reason):
         try:
-            self.pipeline.process_image(self.data)
-            self.data.clear()
+            self.image_pipeline.process_items_manually(self.insert_data)
+            self.insert_data.clear()
         except Exception as e:                
             print(e)
-            self.data.clear()
+            self.insert_data.clear()
         

@@ -29,16 +29,29 @@ class RightmoveSpider(BasespiderSpider):
         json_data["scraped_before"] = db_data["scraped_before"]      
         self.count += 1
         print(f"Number of properties scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
-        self.data.append(json_data)
+        if json_data["scraped_before"]:
+            self.update_data.append(json_data)
+        else:
+            self.insert_data.append(json_data)
+        
         self.check_time_limit()
         
-        if len(self.data) % 100 == 0:
+        if len(self.insert_data) % 100 == 0 and len(self.insert_data) != 0:
             try:
-                self.pipeline.process_items_manually(self.data)
-                self.data.clear()
+                self.insert_pipeline.process_items_manually(self.insert_data)
+                self.insert_data.clear()
             except Exception as e:                
                 print(e)
-                self.data.clear()
+                self.insert_data.clear()
+                        
+        if len(self.update_data) % 100 == 0  and len(self.update_data) != 0:
+            try:
+                self.update_pipeline.process_items_manually(self.update_data)
+                self.update_data.clear()
+            except Exception as e:                
+                print(e)
+                self.update_data.clear()
+    
         
     def property_removed(self, response):
         if response.status == 410 or response.status == 404:
