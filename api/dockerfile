@@ -3,29 +3,29 @@ FROM python:3.10.13
 WORKDIR /app
 
 COPY . /app/
+COPY .env.dev /app/.env.dev
 
-
-RUN apt-get update
-# RUN apt-get update && apt-get install -y \
-    # cron 
-    # gdal-bin \
-    # libgdal-dev \
-    # nano
+RUN apt-get update && apt-get install -y \ 
+    cron \  
+    nano
 
 RUN pip install --upgrade pip
 RUN pip install -r /app/requirements.txt
+
+RUN mkdir /commands \
+    && echo '#!/bin/bash' > \
+    /commands/run_spiders.sh \
+    && echo '/usr/local/bin/python /app/run_spiders.py s; /usr/local/bin/python /app/run_spiders.py p; /usr/local/bin/python /app/run_spiders.py r; /usr/local/bin/python /app/run_spiders.py e; /usr/local/bin/python /app/run_spiders.py i;' >> \
+    /commands/run_spiders.sh \ 
+    && chmod +x /commands/run_spiders.sh
+RUN echo "$(cat /app/.env.dev)" \
+    >> /etc/crontab
+RUN echo "0 0 * * * root bash -c /commands/run_spiders.sh > /app/cron.log 2>&1" \
+    >> /etc/crontab
+
 RUN python manage.py makemigrations
 RUN python manage.py migrate
-RUN chmod +x run_spiders.py
-# COPY ./entrypoint.sh .
-# RUN sed -i 's/\r$//g' /app/entrypoint.sh
-# RUN chmod +x /app/entrypoint.sh
 
-# ENTRYPOINT ["/app/entrypoint.sh"]
-# RUN touch /app/cron.log
-# RUN chmod 666 /app/cron.log
-# RUN chmod +x /app/run_spiders.py
-# RUN chmod +x /app/run_spiders.sh
-# RUN chmod +x /app/command.sh
+RUN touch /app/cron.log
 
-# CMD ["python", "/code/app/api/manage.py", "runserver", "8001"]
+CMD ["cron", "-f"]

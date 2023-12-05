@@ -55,7 +55,7 @@ class SitemapSpider(XMLFeedSpider):
             item["url"][idx] = (thing, f"P{thing.split('/')[-1]}")
         # item["id"] = f"P{item['url'].split('/')[-1]}"
         self.urls.extend(item["url"])
-        print(len(self.urls), end="\r")
+        print(os.environ)
     
     def parse_rightmove_layer2(self, response):
         selector = Selector(response)
@@ -65,7 +65,8 @@ class SitemapSpider(XMLFeedSpider):
         for idx, url in enumerate(item["url"]):
             item["url"][idx] = (url, f'R{url.split("/")[-1].split(".")[0].split("-")[-1]}')
         self.urls.extend(item["url"])
-        print(len(self.urls), end="\r")
+        print(os.environ)
+        
         
     def closed(self, reason):
         self.close_spider(reason)

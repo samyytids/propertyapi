@@ -125,25 +125,14 @@ elif sys.argv[1][0] == "e":
     
 
 elif sys.argv[1][0] == "T":
-    filter = (Q(property__icontains="R") & Q(scraped_before = True))
-    properties = Property.objects.filter(filter).values_list("property", "url", "scraped_before")
-    properties = sorted(properties, key=lambda x: x[2])
-    mapper = {}
-    urls = []
-    
-    for property in properties:
-        mapper[property[1]] = {
-            "property_id": property[0],
-            "scraped_before": property[2],
-        }
-        urls.append(property[1])
-    
-    process.settings["ITEM_PIPELINES"] = {
-        "scrapers.scrapers.pipelines.InsertPipeline": 100,
-        "scrapers.scrapers.pipelines.UpdatePipeline": 200,
+    default =  {
+        "ENGINE": os.environ.get("SQL_ENGINE"),
+        "NAME": os.environ.get("SQL_DB"),
+        "USER": os.environ.get("SQL_USER"),
+        "PASSWORD": os.environ.get("SQL_PASSWORD"),
+        "HOST": os.environ.get("SQL_HOST"),
+        "PORT": os.environ.get("SQL_PORT"),
     }
-    
-    num_urls = len(urls)
-    process.crawl(RightmoveSpider, mapper=mapper, start_urls=urls, num_urls=num_urls)
+    print(default)
 
 process.start()
