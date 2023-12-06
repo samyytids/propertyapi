@@ -57,9 +57,11 @@ FOREIGN_KEYS = {
 
 def get_foreign_key_property_ids(queries: dict[dict]) -> set[str]:
     result_property_ids = set()
+    queries_happened = False
     for query_key, query_value in queries.items():
-        if not query_value:
+        if not query_key:
             continue
+        queries_happened = True
         if not FOREIGN_KEYS[query_key]["dated"]:
             if not result_property_ids:
                 result_property_ids = set(list(FOREIGN_KEYS[query_key]["table"].objects.filter(**query_value).values_list("property_id", flat=True).distinct()))
@@ -70,7 +72,11 @@ def get_foreign_key_property_ids(queries: dict[dict]) -> set[str]:
                 result_property_ids = set(list(FOREIGN_KEYS[query_key]["table"].objects.filter(**query_value).order_by("property_id", f'-{FOREIGN_KEYS[query_key]["date_variable"]}').distinct("property_id").values_list("property_id", flat=True)))
             else:
                 result_property_ids &= set(list(FOREIGN_KEYS[query_key]["table"].objects.filter(**query_value).order_by("property_id", f'-{FOREIGN_KEYS[query_key]["date_variable"]}').distinct("property_id").values_list("property_id", flat=True)))
-    return result_property_ids
+    if queries_happened:
+        return result_property_ids
+    else:
+        result_property_ids = set(list(PropertyValue.objects.all().values_list("property_id", flat=True).distinct()))
+        return result_property_ids
 
 def get_queries(queries: dict[dict], through: bool=False, foreign_key: bool=False) -> dict[str | dict[str]]:
     result_queries = {}
@@ -115,7 +121,6 @@ def serialized_result(property_ids: set[str], one_to_one_fields: dict[F], other_
     extra_data = {}
     for table, fields in other_fields.items():
         data = FOREIGN_KEYS[table]["table"].objects.filter(property_id__in=property_ids).values("property_id", *fields)
-        
         for instance in data:
             if instance["property_id"] not in extra_data:
                 extra_data[instance["property_id"]] = {}
@@ -126,35 +131,29 @@ def serialized_result(property_ids: set[str], one_to_one_fields: dict[F], other_
                     str(key) : value for key, value in instance.items() if key != "property_id"
                 }
             )
-        
     final_query = PropertyValue.objects.filter(property_id__in=property_ids).values("property_id").annotate(
             **one_to_one_fields
         )
-    
     result = {}
     for item in final_query:
-        item.update(extra_data[item["property_id"]])    
-        result[item["property_id"]] = item
-        
+        id = item.get("property_id")
+        if extra_data.get(id):
+            item.update(extra_data[id])    
+            result[id] = item
     return result
 
 def filter_view(request):
     serialized_params = request.GET.get('params')
     if not serialized_params:
         return JsonResponse({"Error" : "No parameters provided"})
-    
     params = json.loads(serialized_params)
-    
     one_to_one_queries = get_queries(queries=params["queries"]["one_to_one"])
     through_queries = get_queries(queries=params["queries"]["through"], through=True)
     foreign_key_queries = get_queries(queries=params["queries"]["foreign_key"], foreign_key=True)
-    
     property_ids = set(list(PropertyValue.objects.filter(**one_to_one_queries).values_list("property_id", flat=True)))
     if params["queries"]["through"]["stations"]:
         property_ids &= set(list(PropertyValue.stations.through.objects.filter(**through_queries).values_list("property_id", flat=True)))
-        
     property_ids &= get_foreign_key_property_ids(foreign_key_queries)
-    
     one_to_one_fields, other_fields = get_fields(params["fields"])
     result = serialized_result(property_ids=property_ids, one_to_one_fields=one_to_one_fields, other_fields=other_fields)
     return JsonResponse(result)
