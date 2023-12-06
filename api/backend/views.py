@@ -58,6 +58,8 @@ FOREIGN_KEYS = {
 def get_foreign_key_property_ids(queries: dict[dict]) -> set[str]:
     result_property_ids = set()
     for query_key, query_value in queries.items():
+        if not query_value:
+            continue
         if not FOREIGN_KEYS[query_key]["dated"]:
             if not result_property_ids:
                 result_property_ids = set(list(FOREIGN_KEYS[query_key]["table"].objects.filter(**query_value).values_list("property_id", flat=True).distinct()))
@@ -148,7 +150,7 @@ def filter_view(request):
     foreign_key_queries = get_queries(queries=params["queries"]["foreign_key"], foreign_key=True)
     
     property_ids = set(list(PropertyValue.objects.filter(**one_to_one_queries).values_list("property_id", flat=True)))
-    if len(through_queries) > 0:
+    if params["queries"]["through"]["stations"]:
         property_ids &= set(list(PropertyValue.stations.through.objects.filter(**through_queries).values_list("property_id", flat=True)))
         
     property_ids &= get_foreign_key_property_ids(foreign_key_queries)
