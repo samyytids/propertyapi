@@ -154,8 +154,6 @@ def filter_view(request):
     if params["queries"]["through"]["stations"]:
         property_ids &= set(list(PropertyValue.stations.through.objects.filter(**through_queries).values_list("property_id", flat=True)))
     property_ids &= get_foreign_key_property_ids(foreign_key_queries)
-    print(property_ids)
     one_to_one_fields, other_fields = get_fields(params["fields"])
-    print(one_to_one_fields, other_fields)
     result = serialized_result(property_ids=property_ids, one_to_one_fields=one_to_one_fields, other_fields=other_fields)
     return JsonResponse(result)
