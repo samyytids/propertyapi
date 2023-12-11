@@ -207,7 +207,7 @@ class ImageProperty(models.Model):
     image_id = models.IntegerField()
     image_data = models.OneToOneField(Images, on_delete=models.CASCADE, related_name="image_id", null=True) # derived from the idx in the property image list
     image_url = models.URLField()
-    image_caption = models.CharField(max_length=255, null=True)
+    image_caption = models.CharField(max_length=300, null=True)
     image_url_resized = models.URLField(null=True)
     image_scraped = models.BooleanField(default=False)
     
@@ -219,7 +219,7 @@ class FloorplanProperty(models.Model):
     floorplan_id = models.IntegerField()
     floorplan_data = models.OneToOneField(Floorplans, on_delete=models.CASCADE, related_name="floorplan_id", null=True) # derived from the idx in the property floorplan list
     floorplan_url = models.URLField()
-    floorplan_caption = models.CharField(max_length=255, null=True)
+    floorplan_caption = models.CharField(max_length=300, null=True)
     floorplan_url_resized = models.URLField(null=True)
     floorplan_scraped = models.BooleanField(default=False)
     

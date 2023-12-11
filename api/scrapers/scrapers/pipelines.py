@@ -79,9 +79,12 @@ class InsertPipeline:
         for property in properties:
             self.filter_properties(property)
         
-        self.insert()
-        self.update_removed()
-        self.clear_data()
+        try:
+            self.insert()
+            self.update_removed()
+            self.clear_data()
+        except:
+            self.clear_data()
 
     def insert(self):
         self.one_to_one_no_id(PropertyValue, self.property_data, "property_id", True)
@@ -204,7 +207,7 @@ class InsertPipeline:
         )
         
     @staticmethod
-    def one_to_many(table, property_data, name, ignore=False):        
+    def one_to_many(table, property_data, name, ignore=False):                        
         table.objects.bulk_create(
             [table(
                 **item
@@ -289,9 +292,12 @@ class UpdatePipeline:
         for property in properties:
             self.filter_properties(property)
         
-        self.update()
-        self.update_removed()
-        self.clear_data()
+        try:
+            self.update()
+            self.update_removed()
+            self.clear_data()
+        except:
+            self.clear_data()
         
     def update(self):
         self.one_to_many(Views, self.views, "views", True)

@@ -40,6 +40,7 @@ class RightmoveSpider(BasespiderSpider):
             try:
                 self.insert_pipeline.process_items_manually(self.insert_data)
                 self.insert_data.clear()
+                print(len(self.insert_data))
             except Exception as e:                
                 print(e)
                 self.insert_data.clear()
@@ -48,6 +49,7 @@ class RightmoveSpider(BasespiderSpider):
             try:
                 self.update_pipeline.process_items_manually(self.update_data)
                 self.update_data.clear()
+                print(len(self.update_data))
             except Exception as e:                
                 print(e)
                 self.update_data.clear()
