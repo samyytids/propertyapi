@@ -184,7 +184,6 @@ class Rooms(models.Model):
 
 ## Link tables
 
-
 class EstateAgentAccreditation(models.Model):
     estate_agent_id = models.ForeignKey(EstateAgent, on_delete=models.CASCADE, related_name="estate_agent_id")
     accreditation_id = models.ForeignKey(Accreditation, on_delete=models.CASCADE, related_name="accreditation_id")

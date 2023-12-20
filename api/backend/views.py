@@ -5,6 +5,7 @@ from backend.models import *
 from django.db.models import F
 import json
 from time import time
+import random
 
 ONE_TO_ONE_TABLES = {
     "text_elements",
@@ -117,10 +118,13 @@ def get_fields(fields: dict[dict]) -> [dict[F], dict[str]]:
                 
     return one_to_one_fields, other_fields
 
-def serialized_result(property_ids: set[str], one_to_one_fields: dict[F], other_fields: dict[str]) -> QuerySet[dict]:
+def serialized_result(property_ids: set[str], one_to_one_fields: dict[F], other_fields: dict[str], sample_size: int|None) -> QuerySet[dict]:
     extra_data = {}
     for table, fields in other_fields.items():
-        data = FOREIGN_KEYS[table]["table"].objects.filter(property_id__in=property_ids).values("property_id", *fields)
+        if sample_size:
+            data = FOREIGN_KEYS[table]["table"].objects.filter(property_id__in=property_ids).values("property_id", *fields)
+        else:
+            data = FOREIGN_KEYS[table]["table"].objects.all().values("property_id", *fields)
         for instance in data:
             if instance["property_id"] not in extra_data:
                 extra_data[instance["property_id"]] = {}
@@ -131,7 +135,12 @@ def serialized_result(property_ids: set[str], one_to_one_fields: dict[F], other_
                     str(key) : value for key, value in instance.items() if key != "property_id"
                 }
             )
-    final_query = PropertyValue.objects.filter(property_id__in=property_ids).values("property_id").annotate(
+    if sample_size:
+        final_query = PropertyValue.objects.filter(property_id__in=property_ids).values("property_id").annotate(
+            **one_to_one_fields
+        )
+    else:
+        final_query = PropertyValue.objects.all().values("property_id").annotate(
             **one_to_one_fields
         )
     result = {}
@@ -144,16 +153,25 @@ def serialized_result(property_ids: set[str], one_to_one_fields: dict[F], other_
 
 def filter_view(request):
     serialized_params = request.GET.get('params')
+    
     if not serialized_params:
         return JsonResponse({"Error" : "No parameters provided"})
+    
     params = json.loads(serialized_params)
     one_to_one_queries = get_queries(queries=params["queries"]["one_to_one"])
     through_queries = get_queries(queries=params["queries"]["through"], through=True)
     foreign_key_queries = get_queries(queries=params["queries"]["foreign_key"], foreign_key=True)
     property_ids = set(list(PropertyValue.objects.filter(**one_to_one_queries).values_list("property_id", flat=True)))
+    
     if params["queries"]["through"]["stations"]:
         property_ids &= set(list(PropertyValue.stations.through.objects.filter(**through_queries).values_list("property_id", flat=True)))
     property_ids &= get_foreign_key_property_ids(foreign_key_queries)
+    
+    if params["sample size"]:
+        property_ids = random.sample(list(property_ids), params["sample size"]) 
     one_to_one_fields, other_fields = get_fields(params["fields"])
-    result = serialized_result(property_ids=property_ids, one_to_one_fields=one_to_one_fields, other_fields=other_fields)
+    try:
+        result = serialized_result(property_ids=property_ids, one_to_one_fields=one_to_one_fields, other_fields=other_fields, sample_size=params["sample size"])
+    except Exception as e:
+        print(e)
     return JsonResponse(result)

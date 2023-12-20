@@ -483,8 +483,8 @@ class DataParser:
         if id[0] == "R":
             name = data.get("companyName", "")
             branch_name = data.get("branchName", "")
-            branch_display_address: data.get("displayAddress")
-            branch_url = data.get(f"https://rightmove.co.uk{'customerProfileUrl'}")
+            branch_display_address = data.get("displayAddress")
+            branch_url = f"https://rightmove.co.uk{data.get('customerProfileUrl')}"
             branch_description = data.get("customerDescription", {}).get("truncatedDescriptionHTML")
             
         else:
