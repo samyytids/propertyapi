@@ -15,7 +15,7 @@ RUN pip install -r /app/requirements.txt
 RUN mkdir /commands \
     && echo '#!/bin/bash' > \
     /commands/run_spiders.sh \
-    && echo '/usr/local/bin/python /app/run_spiders.py s; /usr/local/bin/python /app/run_spiders.py p; /usr/local/bin/python /app/run_spiders.py r; /usr/local/bin/python /app/run_spiders.py e; /usr/local/bin/python /app/run_spiders.py i;' >> \
+    && echo '/usr/local/bin/python /app/run_spiders.py' >> \
     /commands/run_spiders.sh \ 
     && chmod +x /commands/run_spiders.sh
 RUN echo "$(cat /app/.env.dev)" \
