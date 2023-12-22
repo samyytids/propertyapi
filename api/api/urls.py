@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from backend.views import filter_view
+# from backend.views import filter_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('filter_view/', filter_view, name="filter_view")
+    # path('filter_view/', filter_view, name="filter_view")
 ]

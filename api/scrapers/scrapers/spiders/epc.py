@@ -31,7 +31,7 @@ class EpcSpider(BasespiderSpider):
         self.insert_data.append(data)
         
         self.count += 1
-        print(f"Number of imagess scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
+        print(f"Number of epcs scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
         self.check_time_limit()
         
         if len(self.insert_data)%100 == 0:

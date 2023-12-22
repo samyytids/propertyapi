@@ -1,8 +1,31 @@
 from datetime import datetime, timedelta
+from backend.models import *
 import re
 # from api.backend.models import PropertyValue
 
 class RightmoveParser:
+    def parse_update(self, initial_data: dict, id: str) -> dict:
+        if initial_data.get("propertyData", {}).get("id"):
+            property_data = initial_data.get("propertyData", {}) or {}
+            analytics_info = initial_data.get("analyticsInfo", {}) or {}
+            property_data = self.get_property_update_sections(property_data)
+            analytics_info = self.get_analytics_property_update_sections(analytics_info.get("analyticsProperty"))
+            property_table = self.property_table_data(property_data["published_archived"], analytics_info, id)
+            property_data_table = self.property_data_table_update(property_data, analytics_info, id)
+            price_table = self.price_table_update(property_data.get("prices"), property_data.get("listing_history"), property_data_table, id)
+            status_table = self.status_table_update(property_table, property_data_table, id)
+            premium_listing_table = self.premium_listing_table_data(property_data.get("misc_info"), id)
+
+            result = {
+                "property_table" : property_table,
+                "property_data_table" : property_data_table,
+                "price_table" : price_table,
+                "status_table" : status_table,
+                "premium_listing_table" : premium_listing_table,
+            }
+            
+            return result
+            
     def parse(self, initial_data: dict, id: str) -> dict:
         if initial_data.get("propertyData", {}).get("id"):
             property_data = initial_data.get("propertyData", {}) or {}
@@ -10,7 +33,8 @@ class RightmoveParser:
             property_data = self.get_property_data_sections(property_data)
             analytics_info = self.get_analytics_info_sections(analytics_info)
             
-            property_table = self.property_table_data(property_data, analytics_info, id)
+            property_table = self.property_table_data(property_data["published_archived"], analytics_info, id)
+            property_data_table = self.property_data_table_data(property_data, analytics_info, id)
             text_elements_table  = self.text_elements_table_data(property_data.get("text"), id)
             tax_table = self.tax_table_data(property_data.get("tax"), id)
             ownership_table = self.ownership_table_data(property_data.get("shared_ownership"), id)
@@ -19,7 +43,7 @@ class RightmoveParser:
             else:
                 epc_table = []
             location_table = self.location_table_data(property_data.get("location"), property_data.get("address"), id)
-            layout_table = self.layout_table_data(property_data.get("bedrooms"), property_data.get("bathrooms"), property_data.get("size"), property_table.get("property_sub_type"), property_table.get("listing_type"), id)
+            layout_table = self.layout_table_data(property_data.get("bedrooms"), property_data.get("bathrooms"), property_data.get("size"), property_data_table.get("property_sub_type"), property_data_table.get("listing_type"), id)
             station_table = self.station_table_data(property_data.get("nearest_stations"))
             station_distance_table = self.station_distance_table_data(property_data.get("nearest_stations"), id)
             estate_agent_table = self.estate_agent_table_data(property_data.get("estate_agent"), analytics_info.get("analytics_branch"))
@@ -30,20 +54,28 @@ class RightmoveParser:
                 affiliation_table = None
                 agent_affiliation_table = None
                 
-            price_table = self.price_table_data(property_data.get("prices"), property_data.get("listing_history"), property_table, id)
+            price_table = self.price_table_data(property_data.get("prices"), property_data.get("listing_history"), property_data_table, id)
             if property_data.get("key_features"):
                 key_feature_table = self.key_feature_table_data(property_data.get("key_features"), id)
             else:
                 key_feature_table = []
-            status_table = self.status_table_data(property_table, id)
+            status_table = self.status_table_data(property_data_table, id)
             image_table = self.image_table_data(property_data.get("images"), id)
             floorplan_table = self.floorplan_table_data(property_data.get("floorplans"), id)
             room_table = self.room_table_data(property_data.get("rooms"), id)
             premium_listing_table = self.premium_listing_table_data(property_data.get("misc_info"), id)
-            info_reel_item_table = self.info_reel_item_table_data(property_data.get("info_reel"), property_data.get("lettings"), id)
+            business_type_table = self.business_type_table_data(property_data.get("info_reel"), id)
+            if property_data.get("lettings"):
+                lettings_table = self.lettings_table_data(property_data.get("lettings"), id)
+            else:
+                lettings_table = []
             
             result = {
                 "property_table" : property_table,
+                "property_data_table" : {
+                        "property":property_data_table,
+                        "agent":estate_agent_table,
+                    },
                 "text_elements_table" : text_elements_table,
                 "tax_table" : tax_table,
                 "ownership_table" : ownership_table,
@@ -63,10 +95,31 @@ class RightmoveParser:
                 "floorplan_table" : floorplan_table,
                 "room_table" : room_table,
                 "premium_listing_table" : premium_listing_table,
-                "info_reel_item_table" : info_reel_item_table,
+                "business_type_table" : business_type_table,
+                "lettings_table" : lettings_table,
             }
             return result
-            
+    
+    @staticmethod
+    def get_property_update_sections(property_data: dict) -> dict[dict]:
+        result = {
+            "published_archived" : property_data.get("status"), # done
+            "prices" : property_data.get("prices"), # done
+            "misc_info" : property_data.get("misInfo"), # done
+            "listing_history" : property_data.get("listingHistory"), # done
+            "listing_type" : property_data.get("channel"), # done
+        }
+        
+        return result
+    
+    @staticmethod
+    def get_analytics_property_update_sections(analytics_property: dict) -> dict[dict]:
+        result = {
+            "let_agreed" : analytics_property.get("letAgreed"), # done
+            "stc" : analytics_property.get("soldSTC"), # done
+        }
+        return result
+    
     @staticmethod
     def get_property_data_sections(property_data: dict) -> dict[dict]:
         result = {
@@ -77,7 +130,7 @@ class RightmoveParser:
             "key_features" : property_data.get("keyFeatures"), # done
             "images" : property_data.get("images"), # done
             "floorplans" : property_data.get("floorplans"), # done
-            "virtual_tours" : property_data.get("virtualTours"), # done
+            "virtual_tour" : property_data.get("virtualTours"), # done
             "estate_agent" : property_data.get("customer"), # done
             "industry_affiliation" : property_data.get("industryAffiliations"), # sort of like accreditations
             "rooms" : property_data.get("rooms"), # done
@@ -103,14 +156,58 @@ class RightmoveParser:
         return result
 
     @staticmethod
-    def property_table_data(property_data: dict, analytics_property: dict, id: str) -> dict:
+    def property_table_data(published_archived: dict, analytics_property: dict, id: str) -> dict:
+        published, archived = published_archived.values()
+        un_published = not published
+        stc = analytics_property.get("stc") | analytics_property.get("let_agreed")
+        property = Property.objects.get(property_id=id)
+        property.un_published = un_published
+        property.stc = stc
+        property.archived = archived
+        property.scraped_before = True
+        
+        result = property
+        
+        return result
+    
+    @staticmethod
+    def property_data_table_update(property_data: dict, analytics_property: dict, id: str) -> dict:
+        transaction_type = None
+        if property_data.get("listing_type"):
+            _, transaction_type = property_data.get("listing_type").split("_")
+        
+        
+        current_price = property_data.get("prices", {}).get("primaryPrice", "").replace("£", "").replace(",", "")
+        if transaction_type == "LET":
+            current_price = current_price.split(" ")[0]
+        
+        if current_price == "POA" or current_price == "Offers Invited" or current_price == "Offers":
+            current_price = -1
+                
+        reduced = True if "Reduced" in property_data.get("listing_history", {}).get("listingUpdateReason", "") else False
+        
+        property_data: PropertyData = PropertyData.objects.get(property_id = id)
+        property_data.reduced = reduced
+        property_data.current_price = current_price
+        
+        result = property_data
+        
+        # result = {
+        #     "property_id": PropertyData.objects.get(property_id = id),
+        #     "current_price" : current_price,
+        #     "reduced" : reduced,
+        # }
+        
+        return result
+    
+    @staticmethod
+    def property_data_table_data(property_data: dict, analytics_property: dict, id: str) -> dict:
         listing_type = transaction_type = None
         virtual_tour = auction = False
-        published, archived = property_data.get("published_archived").values()
         if property_data.get("listing_type"):
             listing_type, transaction_type = property_data.get("listing_type").split("_")
     
-        if property_data.get("virtual_tours"):
+        if property_data.get("virtual_tour"):
             virtual_tour = True
         if property_data.get("additional_info"):
             additional_information = property_data.get("additional_info").get("targeting")
@@ -127,37 +224,39 @@ class RightmoveParser:
         property_type = analytics_property.get("property_type")
         property_sub_type = property_data.get("property_sub_type")
         added = analytics_property.get("added")
+        added = datetime.strptime(added, "%Y%m%d").date()
         letting_type = analytics_property.get("letting_type")
         pre_owned = analytics_property.get("pre_owned")
-        stc = analytics_property.get("stc") | analytics_property.get("let_agreed")
         furnished = analytics_property.get("furnished")
         current_price = property_data.get("prices", {}).get("primaryPrice", "").replace("£", "").replace(",", "")
         if transaction_type == "LET":
             current_price = current_price.split(" ")[0]
-            
-        reduced = True if "Reduced" in property_data.get("listing_history", {}).get("listingUpdateReason", "") else True
+        
+        if current_price == "POA" or current_price == "Offers Invited" or current_price == "Offers":
+            current_price = -1
+                
+        reduced = True if "Reduced" in property_data.get("listing_history", {}).get("listingUpdateReason", "") else False
         online_viewing = analytics_property.get("online_viewing", False)
         
         result = {
             "property_id":id,
-            "published": published,
-            "archived": archived,
+            "property_url" : f"https://www.rightmove.co.uk/properties/{id}",
             "listing_type": listing_type,
             "transaction_type": transaction_type,
-            "virtual_tours" : virtual_tour,
+            "virtual_tour" : virtual_tour,
             "auction" : auction,
             "retirement" : retirement,
-            "affordable" : affordable, 
+            "affordable_scheme" : affordable, 
             "property_type" : property_type,
             "property_sub_type" : property_sub_type,
             "added_date" : added,
             "letting_type" : letting_type,
             "pre_owned" : pre_owned,
-            "stc" : stc,
             "furnished" : furnished,
             "current_price" : current_price,
             "reduced" : reduced,
             "online_viewing" : online_viewing,
+            "first_scraped" : datetime.now().date(),
         }
         
         return result
@@ -201,6 +300,8 @@ class RightmoveParser:
             "page_title" : page_title,
             "short_description" : short_description,
         }
+
+        result = Text(**result)
         
         return result
     
@@ -227,6 +328,8 @@ class RightmoveParser:
             "domestic_rates" : domestic_rates,
         }
         
+        result = Tax(**result)
+        
         return result
     
     @staticmethod
@@ -244,6 +347,8 @@ class RightmoveParser:
             "rent_frequency" : rent_frequency,
         }
         
+        result = Ownership(**result)
+        
         return result
     
     @staticmethod
@@ -256,7 +361,8 @@ class RightmoveParser:
                 "epc_url" : epc_url,
                 "epc_caption" : epc_caption,
             }
-        else:
+        elif len(epc_data) > 1:
+        # else:
             epc_url = epc_data[0].get("url")
             epc_caption = "EPC"
             ei_url = epc_data[1].get("url")
@@ -268,6 +374,17 @@ class RightmoveParser:
                 "ei_url" : ei_url,
                 "ei_caption" : ei_caption,
             }
+        else:
+            result = {
+                "property_id": id,
+                "epc_url" : None,
+                "epc_caption" : None,
+                "ei_url" : None,
+                "ei_caption" : None,
+            }
+        
+        result = Epc(**result)  
+        
         return result
             
     @staticmethod
@@ -289,12 +406,14 @@ class RightmoveParser:
             "longitude" : longitude, 
         }
         
+        result = Location(**result)
+        
         return result
     
     @staticmethod
     def layout_table_data(bedrooms: int | None, bathrooms: int | None, size: str | None, property_sub_type: str, property_listing_type: str,id: str) -> dict:
         result_size = None
-                
+        
         if size:
             for option in size:
                 if option.get("unit") == "sqm":
@@ -312,6 +431,8 @@ class RightmoveParser:
             "size" : result_size
         }
 
+        result = Layout(**result)
+        
         return result
                 
     @staticmethod
@@ -324,6 +445,7 @@ class RightmoveParser:
                 "station_name" : station_name,
                 "station_type" : station_type,
             }
+            result_data = Station(**result_data)
             result.append(result_data)
         
         return result
@@ -337,7 +459,7 @@ class RightmoveParser:
             station_distance_unit = station.get("unit")
             result_data = {
                 "property_id" : id,
-                "station_id" : station_name, # replace with station(instance)
+                "station_id" : station_name,
                 "station_distance" : station_distance,
                 "station_distance_unit" : station_distance_unit,
             }
@@ -366,6 +488,8 @@ class RightmoveParser:
             "developer" : developer,
         }
         
+        result = EstateAgent(**result)
+        
         return result
     
     @staticmethod
@@ -375,6 +499,9 @@ class RightmoveParser:
             result_data = {
                 "affiliation_name" : affiliation.get("name")
             }
+            
+            result_data = Affiliation(**result_data)
+            
             result.append(result_data)
         
         return result
@@ -382,22 +509,24 @@ class RightmoveParser:
     @staticmethod
     def agent_affiliation_table_data(estate_agent_table: dict, affiliation_table: list[dict]) -> list[dict]:
         result = []
-        for affilation in affiliation_table:
+        for affiliation in affiliation_table:
             result_data = {
-                "affilation_id" : affilation.get("affiliation_name"),
-                "agent_id" : estate_agent_table.get("agent_name"), # replace with estate_agent(instance)
+                "affiliation_id" : affiliation,
+                "agent_id" : estate_agent_table,
             }
             result.append(result_data)
         
         return result
     
     @staticmethod
-    def price_table_data(price_data: dict, listing_history: dict, property_table: dict, id: str) -> dict:
+    def price_table_data(price_data: dict, listing_history: dict, property_data_table: dict, id: str) -> dict:
         price = price_data.get("primaryPrice")
         if "pcm" in price:
             price = price.split(" ")[0]
-            
+        
         price = price.replace("£", "").replace(",", "")
+        if price == "POA" or price == "Offers Invited" or price == "Offers":
+            price = -1
         price_qualifier: str = price_data.get("displayPriceQualifier")
         price_qualifier = price_qualifier.lower()
         
@@ -414,12 +543,56 @@ class RightmoveParser:
         original_price = False if "Reduced" in history else True
         if not original_price:
             if "yesterday" in history:
-                price_date = datetime.now() - timedelta(1)
-                price_date = price_date.strftime("%Y%m%d")
+                price_date = (datetime.now() - timedelta(1)).date()
+            elif "today" in history:
+                price_date = datetime.now().date()
             else:
-                price_date = "".join(history.split(" ")[-1].split("/")[::-1])
+                price_date = datetime.strptime("".join(history.split(" ")[-1].split("/")[::-1]), "%Y%m%d").date()
         else:
-            price_date = property_table.get("added_date")
+            price_date = property_data_table.get("added_date")
+        
+        result = {
+            "property_id": id,
+            "price" : price,
+            "price_qualifier" : price_qualifier,
+            "original_price" : original_price,
+            "price_date" : price_date,
+        }
+        
+        return result
+    
+    @staticmethod
+    def price_table_update(price_data: dict, listing_history: dict, property_data_table: dict, id: str) -> dict:
+        price: str = price_data.get("primaryPrice")
+        if "pcm" in price:
+            price = price.split(" ")[0]
+            
+        price = price.replace("£", "").replace(",", "")
+        if price == "POA" or price == "Offers Invited" or price == "Offers":
+            price = -1
+        price_qualifier: str = price_data.get("displayPriceQualifier")
+        price_qualifier = price_qualifier.lower()
+        
+        if "offers over" == price_qualifier:
+            price_qualifier = "from"
+        elif "offers in excess of" == price_qualifier:
+            price_qualifier = "from"
+        elif "offers in region of" == price_qualifier:
+            price_qualifier = "guide price"
+        
+        if price_qualifier == "":
+            price_qualifier = None
+        history = listing_history.get("listingUpdateReason")
+        original_price = False if "Reduced" in history else True
+        if not original_price:
+            if "yesterday" in history:
+                price_date = (datetime.now() - timedelta(1)).date()
+            elif "today" in history:
+                price_date = datetime.now().date()
+            else:
+                price_date = datetime.strptime("".join(history.split(" ")[-1].split("/")[::-1]), "%Y%m%d").date()
+        else:
+            price_date = property_data_table.added_date
         
         result = {
             "property_id": id,
@@ -437,7 +610,7 @@ class RightmoveParser:
         for feature in key_feature_data:
             result_data = {
                 "property_id" : id,
-                "feature" : feature.lower(), # replace with fixed version if it isn't too slow. 
+                "feature" : feature.lower(),
             }
             result.append(result_data)
         
@@ -446,8 +619,7 @@ class RightmoveParser:
     @staticmethod
     def status_table_data(property_table: dict, id: str) -> dict:
         if property_table.get("stc"):
-            status_date = datetime.now()
-            status_date = status_date.strftime("%Y%m%d")
+            status_date = datetime.now().date()
             result = {
                 "property_id" : id,
                 "stc" : True,
@@ -459,6 +631,25 @@ class RightmoveParser:
                 "stc" : False,
                 "status_date" : property_table.get("added_date")
             }
+            
+        return result
+    
+    @staticmethod
+    def status_table_update(property_table: Property, property_data_table: PropertyData, id: str) -> dict:
+        if property_table.stc:
+            status_date = datetime.now().date()
+            result = {
+                "property_id" : id,
+                "stc" : True,
+                "status_date" : status_date
+            }
+        else:
+            result = {
+                "property_id" : id,
+                "stc" : False,
+                "status_date" : property_data_table.added_date
+            }
+            
         return result
         
     @staticmethod
@@ -508,8 +699,7 @@ class RightmoveParser:
     def premium_listing_table_data(misc_info: dict, id: str) -> dict:
         featured_property = misc_info.get("featuredProperty")
         premium_listing = misc_info.get("premiumDisplay")
-        listing_date = datetime.now()
-        listing_date = listing_date.strftime("%Y%m%d")
+        listing_date = datetime.now().date()
         
         result = {
             "property_id" : id,
@@ -521,35 +711,43 @@ class RightmoveParser:
         return result
      
     @staticmethod
-    def info_reel_item_table_data(info_reel: list[dict], lettings: dict, id: str) -> list[dict]:
-        result = []
-        for info in info_reel:
-            result_data = {
-                "property_id" : id,
-                "item_name" : info.get("title").lower(),
-                "item_text" : info.get("primaryText").lower(),
-            }
-            result.append(result_data)
-        if lettings:
-            data = {
-                "let available date" : lettings.get("letAvailableDate"),
-                "deposit" : lettings.get("deposit"),
-                "minimum tenancy length" : lettings.get("minimumTermInMonths"),
-                "let type" : lettings.get("letType"),
-                "furnishing type" : lettings.get("furnishType"),
-            }
-            for key, value in data.items():
-                if isinstance(value, str):
-                    value = value.lower()
-                result_data = {
-                    "property_id" : id,
-                    "item_name" : key,
-                    "item_text": value,
-                }
-                result.append(result_data)
-            
+    def business_type_table_data(business_type: list[dict], id: str) -> list[dict]:
+        result = {
+            "property_id" : id,
+        }
+        for info in business_type:
+            item = info.get("title").lower().replace(" ", "_")
+            if item == "use_class":
+                result["use_class"] = info.get("item_text")
+                
+            elif item == "sector":
+                result["sector"] = info.get("item_text")
+        
+        result = BusinessType(**result)
+        
         return result
-     
+    
+    @staticmethod
+    def lettings_table_data(lettings:dict, id: str) -> dict:
+        let_available_date = lettings.get("letAvailableDate")
+        if let_available_date:
+            if let_available_date == "Now":
+                let_available_date = datetime.today().date()
+            else:
+                let_available_date = datetime.strptime("".join(lettings.get("letAvailableDate").split("/")[::-1]), "%Y%m%d").date()
+        result = {
+            "property_id" : id,
+            "let_available_date" : let_available_date,
+            "deposit" : lettings.get("deposit"),
+            "minimum_tenancy_length" : lettings.get("minimumTermInMonths"),
+            "let_type" : lettings.get("letType"),
+            "furnishing_type" : lettings.get("furnishType"),
+        }
+        
+        result = LettingInfo(**result)
+        
+        return result
+    
     def get_analytics_info_sections(self, analytics_info: dict) -> dict[dict]:
         analytics_property = analytics_info.get("analyticsProperty", {})
         result = {

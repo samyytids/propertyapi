@@ -55,9 +55,9 @@ class RightmoveSpider(BasespiderSpider):
         submission_list: list = self.__getattribute__(list_to_check)
         try:
             if list_to_check == "update_data":
-                self.update_pipeline.process_items_manually(submission_list)
+                self.update_pipeline.update_data(submission_list)
             else:
-                self.insert_pipeline.process_items_manually(self.insert_data)
+                self.insert_pipeline.insert_data(submission_list)
             submission_list.clear()
         except Exception as e:                
             print(e)

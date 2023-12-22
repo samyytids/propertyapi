@@ -1,238 +1,265 @@
 from django.db import models
-import json
-# Data tables
 
-## One to one
+class Property(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    property_url = models.URLField()
+    scraped_before = models.BooleanField(default=False)
+    un_published = models.BooleanField(default=False)
+    archived = models.BooleanField(default=False)
+    bad_data = models.BooleanField(default=False)
+    removed = models.BooleanField(default=False)
+    stc = models.BooleanField(default=False)
+    property_data = models.OneToOneField("PropertyData", on_delete=models.CASCADE, null=True)
 
-class TextElements(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
+    class Meta:
+        db_table = "property"
+class PropertyData(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    property_url = models.URLField()
+    listing_type = models.CharField(max_length=3)
+    transaction_type = models.CharField(max_length=3)
+    virtual_tour = models.BooleanField()
+    auction = models.BooleanField()
+    retirement = models.BooleanField()
+    affordable_scheme = models.BooleanField()
+    property_type = models.CharField(max_length=35)
+    property_sub_type = models.CharField(max_length=35)
+    added_date = models.DateField()
+    letting_type = models.CharField(max_length=30)
+    pre_owned = models.CharField(max_length=30)
+    furnished = models.CharField(max_length=50)
+    current_price = models.IntegerField()
+    reduced = models.BooleanField()
+    online_viewing = models.BooleanField()
+    text = models.OneToOneField("Text", on_delete=models.CASCADE)
+    tax = models.OneToOneField("Tax", on_delete=models.CASCADE)
+    epc = models.OneToOneField("Epc", on_delete=models.CASCADE, null=True)
+    location = models.OneToOneField("Location", on_delete=models.CASCADE)
+    layout = models.OneToOneField("Layout", on_delete=models.CASCADE)
+    station = models.ManyToManyField(
+        "Station", 
+        through="StationDistance",
+        through_fields=("property_id", "station_id")
+    )
+    agent = models.ForeignKey("EstateAgent", on_delete=models.CASCADE)
+    business_type = models.ForeignKey("BusinessType", on_delete=models.CASCADE, null=True)
+    letting_info = models.OneToOneField("LettingInfo", on_delete=models.CASCADE, null=True)
+    first_scraped = models.DateField()
+    class Meta:
+        db_table = "property_data"
+
+class Text(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
     description = models.TextField(null=True)
-    share_text = models.TextField(null=True)
-    share_description = models.TextField(null=True)
-
-class Broadband(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    standard_upload = models.DecimalField(max_digits=6, decimal_places=2, null=True)
-    standard_download = models.DecimalField(max_digits=6, decimal_places=2, null=True)
-    super_fast_upload = models.DecimalField(max_digits=6, decimal_places=2, null=True)
-    super_fast_download = models.DecimalField(max_digits=6, decimal_places=2, null=True)
-    ultra_fast_upload = models.DecimalField(max_digits=6, decimal_places=2, null=True)
-    ultra_fast_download = models.DecimalField(max_digits=6, decimal_places=2, null=True)
-
-class Tax(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    tax_band = models.CharField(max_length=20,null=True)
-    tax_exempt = models.BooleanField(null=True)
-    tax_included = models.BooleanField(null=True)
-    annual_ground_rent = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    annual_ground_rent_review_period = models.IntegerField(null=True)
-    annual_ground_rent_percentage_increase = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    annual_service_charge = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    domestic_rates = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-
-class OwnershipRetirement(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    ownership_type = models.BooleanField(null=True)
-    retirement_home = models.BooleanField(null=True)
-
-class Tenure(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    tenure_type = models.CharField(max_length=20,null=True)
-    tenure_lease_years = models.IntegerField(null=True)
-    tenure_text = models.TextField(null=True)
+    disclaimer = models.TextField()
+    auction_fees_disclaimer = models.TextField(null=True)
+    guide_price_disclaimer = models.TextField(null=True)
+    reserve_price_disclaimer = models.TextField(null=True)
+    static_map_disclaimer_text = models.TextField(null=True)
+    new_homes_brochure_disclaimer = models.TextField()
+    share_text = models.TextField()
+    share_description = models.TextField()
+    page_title = models.TextField()
+    short_description = models.TextField()
     
-class EPC(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    epc_url = models.URLField(max_length=255, null=True)
-    epc_scraped = models.BooleanField(default=False)
+    class Meta:
+        db_table = "text"
+    
+class Tax(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    council_tax_exempt = models.BooleanField()
+    council_tax_included = models.BooleanField()
+    annual_ground_rent = models.IntegerField(null=True)
+    ground_rent_review_period_in_years = models.IntegerField(null=True)
+    ground_rent_percentage_increase = models.IntegerField(null=True)
+    annual_service_charge = models.IntegerField(null=True)
+    council_tax_band = models.CharField(max_length=50, null=True)
+    domestic_rates = models.IntegerField(null=True)
+    class Meta:
+        db_table = "tax"
+
+class Ownership(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    shared_ownership = models.BooleanField()
+    ownership_percentage = models.IntegerField(null=True)
+    rent_price = models.IntegerField(null=True)
+    rent_frequency = models.CharField(max_length=30)
+
+    class Meta:
+        db_table = "ownership"
+        
+class Epc(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    epc_url = models.URLField(null=True)
+    epc_caption = models.CharField(max_length=255, null=True)
     epc_current = models.IntegerField(null=True)
     epc_potential = models.IntegerField(null=True)
     epc_image = models.ImageField(upload_to="epc_image/", null=True)
-
-class Location(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    country = models.CharField(max_length=255, null=True)
-    town = models.CharField(max_length=255, null=True)
-    postcode = models.CharField(max_length=8, null=True)
-    street = models.CharField(max_length=255, null=True)
-    display_address = models.CharField(max_length=255)
-    lat = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    long = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-
-class Layout(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    bathrooms = models.IntegerField(null=True)
-    bedrooms = models.IntegerField(null=True)
-    receptions = models.IntegerField(null=True)
-    property_type = models.CharField(max_length=255, null=True)
-    min_size = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    max_size = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-
-class ListingType(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    listing_type = models.CharField(max_length=30, null=True)
-    letting_type = models.CharField(max_length=50, null=True)
-
-class Added(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    added_date = models.DateField(null=True)
-
-## Many to one
-
-class Station(models.Model):
-    station_name = models.CharField(max_length=200, primary_key=True)
-    station_type = models.CharField(max_length=200, null=True)
+    ei_url = models.URLField(null=True)
+    ei_caption = models.CharField(max_length=255, null=True)
+    ei_current = models.IntegerField(null=True)
+    ei_potential = models.IntegerField(null=True)
+    ei_image = models.ImageField(upload_to="ei_image/", null=True)
+    epc_scraped = models.BooleanField(default=False)
+    
+    class Meta:
+        db_table = "epc"
         
-class Accreditation(models.Model):
-    accreditation_url = models.URLField(max_length=255)
-    accreditation_label = models.CharField(max_length=255, primary_key=True)
-    accreditation_key = models.CharField(max_length=255)
-    accreditation_type = models.CharField(max_length=255)
+class Location(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    address = models.CharField(max_length=255)
+    country = models.CharField(max_length=50, null=True)
+    postcode = models.CharField(max_length=9)
+    latitude = models.DecimalField(max_digits=50, decimal_places=10, null=True)
+    longitude = models.DecimalField(max_digits=50, decimal_places=10, null=True)
+    
+    class Meta:
+        db_table = "location"
+        
+class Layout(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    bedrooms = models.IntegerField()
+    bathrooms = models.IntegerField(null=True)
+    size = models.IntegerField(null=True)
+    
+    class Meta:
+        db_table = "layout"
+        
+class Station(models.Model):
+    station_name = models.CharField(max_length=255, unique=True)
+    station_type = models.CharField(max_length=100)
+    
+    class Meta:
+        db_table = "station"
+
+class StationDistance(models.Model):
+    station_id = models.ForeignKey(Station, on_delete=models.CASCADE)
+    property_id = models.ForeignKey(PropertyData, on_delete=models.CASCADE)
+    station_distance = models.DecimalField(max_digits=20, decimal_places=10)
+    station_distance_unit = models.CharField(max_length = 10)
+    class Meta:
+        db_table = "station_distance"
+        unique_together = [["station_id", "property_id"]]
 
 class EstateAgent(models.Model):
-    name = models.CharField(max_length=200)
-    branch_name = models.CharField(max_length=200, null=True)
-    branch_display_address = models.CharField(max_length=200, null=True)
-    branch_url = models.CharField(max_length=200, null=True)
-    branch_description = models.TextField(null=True)
-    accreditations = models.ManyToManyField(Accreditation, through="EstateAgentAccreditation")
-
-    class Meta:
-        unique_together = [["name", "branch_name"]]
-        
-        
-# Link tables
-
-class PropertyValue(models.Model):
-    property_id = models.CharField(max_length=20, primary_key=True)
-    text_elements = models.OneToOneField(TextElements, on_delete=models.CASCADE, related_name="text_elements_id", null=True)
-    location = models.OneToOneField(Location, on_delete=models.CASCADE, related_name="location_id", null=True)
-    broadband = models.OneToOneField(Broadband, on_delete=models.CASCADE, related_name="broadband_id", null=True)
-    epc = models.OneToOneField(EPC, on_delete=models.CASCADE, related_name="epc_id", null=True)
-    listing_type = models.OneToOneField(ListingType, on_delete=models.CASCADE, related_name="listing_type_id", null=True)
-    layout = models.OneToOneField(Layout, on_delete=models.CASCADE, related_name="layout_id", null=True)
-    tax = models.OneToOneField(Tax, on_delete=models.CASCADE, related_name="tax_id", null=True)
-    ownership = models.OneToOneField(OwnershipRetirement, on_delete=models.CASCADE, related_name="ownership_id", null=True)
-    tenure = models.OneToOneField(Tenure, on_delete=models.CASCADE, related_name="tenure_id", null=True)
-    added = models.OneToOneField(Added, on_delete=models.CASCADE, related_name="added_id", null=True)
-    estate_agent = models.ForeignKey(EstateAgent, on_delete=models.CASCADE, related_name="estate_agent", null=True)
-    stations = models.ManyToManyField(Station, through="StationStationDistance")
-
-
-## One to Many
-
-class Prices(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE, max_length=20, to_field="property_id")
-    price = models.IntegerField(null=True)
-    price_date = models.DateField(null=True)
-    price_qualifier = models.CharField(max_length = 255, null=True)
-    price_type = models.CharField(max_length = 255, null=True)
+    agent_type = models.CharField(max_length=255)
+    agent_url = models.URLField()
+    agent_url_type = models.CharField(max_length=255)
+    agent_name = models.CharField(max_length=255)
+    branch_name = models.CharField(max_length=255, null=True)
+    agent_description = models.TextField()
+    developer = models.BooleanField()
+    affiliation = models.ManyToManyField(
+        "Affiliation", 
+        through="AgentAffiliation",
+        through_fields=("agent_id", "affiliation_id")
+    )
     
     class Meta:
-        unique_together = [["property_id", "price"]]
+        db_table = "estate_agent"
+        unique_together = [["agent_name", "branch_name"]]
+        
+class Affiliation(models.Model):
+    affiliation_name = models.CharField(max_length=255, unique=True)
+    
+    class Meta:
+        db_table = "affiliation"
 
+class AgentAffiliation(models.Model):
+    affiliation_id = models.ForeignKey(Affiliation, on_delete=models.CASCADE)
+    agent_id = models.ForeignKey(EstateAgent, on_delete=models.CASCADE)
+    
+    class Meta:
+        db_table = "agent_affiliation"
+        unique_together = [["affiliation_id", "agent_id"]]
+
+class Price(models.Model):
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    price = models.IntegerField()
+    price_qualifier = models.CharField(max_length=50, null=True)
+    original_price = models.BooleanField()
+    price_date = models.DateField()
+    
+    class Meta:
+        db_table = "price"
+        unique_together = [["price", "property_id"]]
+        
 class KeyFeature(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20, to_field="property_id")
-    key_feature = models.CharField(max_length=255, null=True)
-    key_feature_text = models.CharField(max_length=255, null=True)
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    feature = models.TextField()
     
     class Meta:
-        unique_together = [["property_id", "key_feature"]]
-
-class Statuses(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20, to_field="property_id")
-    status = models.BooleanField(default = False, null=True)
-    status_date = models.DateField(null=True)
+        db_table = "key_feature"
+        unique_together = [["feature", "property_id"]]
+        
+class Status(models.Model):
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    stc = models.BooleanField()
+    status_date = models.DateField()
     
     class Meta:
-        unique_together = [["property_id", "status", "status_date"]]
-
-class Views(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE,max_length=20, to_field="property_id")
-    views = models.IntegerField(null=True)
-    unique_views = models.IntegerField(null=True)
-    view_date = models.DateField(null=True)
-    featured = models.BooleanField(null=True)
-    bumped = models.BooleanField(null=True)
-    published = models.BooleanField(null=True)
-    
-    class Meta:
-        unique_together = [["property_id", "view_date"]]
-
-class Images(models.Model):
-    composite_id = models.CharField(max_length=25, primary_key=True)
-    image_file = models.ImageField(upload_to="image/", null=True) # think about using imagefield
-    image_file_resized = models.ImageField(upload_to="image/", null=True) # think about using imagefield]
-
-class Floorplans(models.Model):
-    composite_id = models.CharField(max_length=25, primary_key=True)
-    floorplan_file = models.ImageField(upload_to="floorplan/", null=True) # think about using floorplanfield
-    floorplan_file_resized = models.ImageField(upload_to="floorplan/", null=True) # think about using floorplanfield
-
-class Rooms(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE)
-    room = models.IntegerField(null=True) # derived from the idx in the property floorplan list
-    room_name = models.CharField(max_length=255, null=True)
-    room_description = models.TextField(null=True)
-    room_width = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    room_length = models.DecimalField(max_digits=20, decimal_places=10, null=True)
-    room_unit = models.CharField(max_length=10, null=True)
-    
-    class Meta:
-        unique_together = [["property_id", "room"]]
-
-
-## Link tables
-
-class EstateAgentAccreditation(models.Model):
-    estate_agent_id = models.ForeignKey(EstateAgent, on_delete=models.CASCADE, related_name="estate_agent_id")
-    accreditation_id = models.ForeignKey(Accreditation, on_delete=models.CASCADE, related_name="accreditation_id")
-    have_accreditation = models.BooleanField(default=False)
-    
-    class Meta:
-        unique_together = [["estate_agent_id", "accreditation_id"]]
-   
-class StationStationDistance(models.Model):
-    property_id = models.ForeignKey(PropertyValue, on_delete=models.CASCADE)
-    station_id = models.ForeignKey(Station, on_delete=models.CASCADE, related_name="station_id")
-    station_distance = models.DecimalField(max_digits=30, decimal_places=16)
-    station_distance_units = models.CharField(max_length=30, null=True)
-    
-    class Meta:
-        unique_together = [["property_id", "station_id"]]
- 
-class ImageProperty(models.Model):
-    property = models.ForeignKey(PropertyValue, on_delete=models.CASCADE)
-    image_id = models.IntegerField()
-    image_data = models.OneToOneField(Images, on_delete=models.CASCADE, related_name="image_id", null=True) # derived from the idx in the property image list
+        db_table = "status"
+        unique_together = [["stc", "property_id"]]
+        
+class Image(models.Model):
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
     image_url = models.URLField()
-    image_caption = models.CharField(max_length=300, null=True)
-    image_url_resized = models.URLField(null=True)
+    image_caption = models.CharField(max_length=255, null=True)
+    image_file = models.ImageField(upload_to="image/", null=True)
     image_scraped = models.BooleanField(default=False)
     
     class Meta:
-        unique_together = [["property", "image_id"]]
+        db_table = "image"
+        unique_together = [["property_id", "image_url"]]
         
-class FloorplanProperty(models.Model):
-    property = models.ForeignKey(PropertyValue, on_delete=models.CASCADE)
-    floorplan_id = models.IntegerField()
-    floorplan_data = models.OneToOneField(Floorplans, on_delete=models.CASCADE, related_name="floorplan_id", null=True) # derived from the idx in the property floorplan list
+class Floorplan(models.Model):
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
     floorplan_url = models.URLField()
-    floorplan_caption = models.CharField(max_length=300, null=True)
-    floorplan_url_resized = models.URLField(null=True)
-    floorplan_scraped = models.BooleanField(default=False)
+    floorplan_caption = models.CharField(max_length=255, null=True)
+    floorplan_file = models.ImageField(upload_to="floorplan/", null=True)
     
     class Meta:
-        unique_together = [["property", "floorplan_id"]]
+        db_table = "floorplan"
+        unique_together = [["property_id", "floorplan_url"]]
+        
+class Room(models.Model):
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    room_name = models.CharField(max_length=255, null=True)
+    room_description = models.TextField(null=True)
+    room_width = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    room_length = models.DecimalField(max_digits=7, decimal_places=2, null=True)
+    room_unit = models.CharField(max_length=4, null=True)
+    room_dimension = models.CharField(max_length=50, null=True)
+    
+    class Meta:
+        db_table = "room"
+        unique_together = [["property_id", "room_name", "room_description"]]
 
+class PremiumListing(models.Model):
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    featured_property = models.BooleanField()
+    premium_listing = models.BooleanField()
+    listing_date = models.DateField()
+    
+    class Meta:
+        db_table = "premium_listing"
+        unique_together = [["property_id", "listing_date"]]
 
-
-# Main table
-
-class Property(models.Model):
-    property = models.CharField(max_length=20, primary_key=True)
-    url = models.URLField(max_length=200)
-    un_published = models.BooleanField(default = False)
-    scraped_before = models.BooleanField(default = False)
-    stc = models.BooleanField(default = False)
-    property_values = models.OneToOneField(PropertyValue, on_delete=models.CASCADE, null=True)
+class BusinessType(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    use_class = models.CharField(max_length=255, null=True)
+    sector = models.CharField(max_length=255, null=True)
+    
+    class Meta:
+        db_table = "business type"
+        
+class LettingInfo(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    let_available_date = models.DateField(null=True)
+    deposit = models.IntegerField(null=True)
+    minimum_tenancy_length = models.IntegerField(null=True)
+    let_type = models.CharField(max_length=30, null=True)
+    furnishing_type = models.CharField(max_length=50, null=True)
+    
+    class Meta:
+        db_table = "letting info"

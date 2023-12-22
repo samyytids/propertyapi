@@ -14,366 +14,465 @@ sys.path.append(project_root)
 os.environ['DJANGO_SETTINGS_MODULE'] = 'api.api.settings'
 django.setup()
 
-from backend.data_parser import DataParser
+from backend.rightmove_parser import RightmoveParser
 from backend.models import *
 
 class InsertPipeline:
-    def __init__(self): 
-        self.parser = DataParser()
-        self.property_data = []
-        self.properties = []
-        self.views = []
-        self.key_features = []
-        self.images = []
-        self.floorplans = []
-        self.rooms = []
-        self.stations = []
-        self.station_distances = []
-        self.prices = []
-        self.statuses = []
-        self.accreditations = []
-        self.have_accreditations = []
-        self.epcs = []
-        self.property_updates = []
+    def __init__(self):
+        self.parser = RightmoveParser()
+        self.property_table_data = []
+        self.property_data_table_data = []
+        self.text_elements_table_data = []
+        self.tax_table_data = []
+        self.ownership_table_data = []
+        self.epc_table_data = []
+        self.location_table_data = []
+        self.layout_table_data = []
+        self.station_table_data = []
+        self.station_distance_table_data = []
+        self.estate_agent_table_data = []
+        self.price_table_data = []
+        self.key_feature_table_data = []
+        self.status_table_data = []
+        self.image_table_data = []
+        self.floorplan_table_data = []
+        self.room_table_data = []
+        self.premium_listing_table_data = []
+        self.business_type_table_data = []
+        self.lettings_table_data = []
+        self.affiliation_table_data = []
+        self.agent_affiliation_table_data = []
+        self.un_published = []
+        self.archived = []
         self.removed = []
-        
-    def store_data(self, data: dict):
-        self.property_data.append(data["single"])
-        self.properties.append(data["property"])
-        self.views.extend(data["views"])
-        self.key_features.extend(data["key_features"])
-        self.images.extend(data["images"])
-        self.floorplans.extend(data["floorplans"])
-        self.rooms.extend(data["rooms"])
-        self.stations.extend(data["stations"])
-        self.station_distances.extend(data["station_distances"])
-        self.prices.extend(data["prices"])
-        self.statuses.extend(data["statuses"])    
-        self.accreditations.extend(data["accreditations"])
-        self.have_accreditations.extend(data["have_accreditations"])
-    
-    def clear_data(self):
-        self.property_data.clear()
-        self.properties.clear()
-        self.views.clear()
-        self.key_features.clear()
-        self.images.clear()
-        self.floorplans.clear()
-        self.rooms.clear()
-        self.stations.clear()
-        self.station_distances.clear()
-        self.prices.clear()
-        self.statuses.clear()
-        self.accreditations.clear()
-        self.have_accreditations.clear()
-        self.removed.clear()
-    
-    def filter_properties(self, property: dict):
-        if not property.get("props") and not property.get("analyticsInfo"):
-            self.removed.append(property["id"])
-        else:
-            data = self.parser.parse(property, property["id"])
-            self.store_data(data)
-     
-    def process_items_manually(self, properties: list[dict]): 
+        self.bad_data = []
+   
+    def process_data(self, properties: list[dict]):
         for property in properties:
-            self.filter_properties(property)
-        
-        try:
-            self.insert()
-            self.update_removed()
-            self.clear_data()
-        except:
-            self.clear_data()
-
-    def insert(self):
-        self.one_to_one_no_id(PropertyValue, self.property_data, "property_id", True)
-        self.one_to_one(TextElements, self.property_data, "text_elements", True)
-        self.one_to_one(OwnershipRetirement, self.property_data, "ownership_retirement", True)
-        self.one_to_one(Location, self.property_data, "location", True)
-        self.one_to_one(Broadband, self.property_data, "broadband", True)
-        self.one_to_one(EPC, self.property_data, "epc", True)
-        self.one_to_one(ListingType, self.property_data, "listing_type", True)
-        self.one_to_one(Layout, self.property_data, "layout", True)
-        self.one_to_one(Tax, self.property_data, "tax", True)
-        self.one_to_one(Tenure, self.property_data, "tenure", True)
-        self.one_to_one(Added, self.property_data, "added", True)
-        self.one_to_one_list_no_id(Station, self.stations, "stations", True)
-        self.one_to_one_list_no_id(Accreditation, self.accreditations, "accreditations", True)
-        self.one_to_many(ImageProperty, self.images, "images", True)
-        self.one_to_many(FloorplanProperty, self.floorplans, "floorplans", True)
-        self.one_to_one_no_id(EstateAgent, self.property_data, "estate_agent", True)
-        self.one_to_many(KeyFeature, self.key_features, "key_features", True)
-        self.one_to_many(Views, self.views, "views", True)
-        self.one_to_many(Rooms, self.rooms, "rooms", True)
-        self.one_to_many(Prices, self.prices, "prices", True)
-        self.one_to_many(Statuses, self.statuses, "statuses", True)
-        EstateAgentAccreditation.objects.bulk_create(
-            [EstateAgentAccreditation(
-                estate_agent_id = EstateAgent.objects.get(
-                    name = accreditation["estate_agent"].get("organisation"),
-                    branch_name = accreditation["estate_agent"].get("organisationBranch")
-                ),
-                accreditation_id = Accreditation.objects.get(
-                    accreditation_label = accreditation["accreditation_label"]
-                ),
-                have_accreditation = accreditation["have"] 
-            ) for accreditation in self.have_accreditations],
-            ignore_conflicts=True
-        )
-        StationStationDistance.objects.bulk_create(
-            [StationStationDistance(
-                property_id = PropertyValue(property_id = station["property_id"]),
-                station_id = Station(station_name = station["station_name"]),
-                station_distance = station["station_distance"],
-                station_distance_units = station["station_distance_units"]
-            ) for station in self.station_distances],
-            ignore_conflicts=True
-        )
-        property_values = self.get_update_objects(PropertyValue, "property_id")
-        PropertyValue.objects.bulk_update(
-            property_values,
-            [
-                "text_elements",
-                "location",
-                "broadband",
-                "epc",
-                "listing_type",
-                "layout",
-                "tax",
-                "ownership",
-                "tenure",
-                "estate_agent",
-                "added",
-            ]
-        )
-        properties = self.get_update_objects(Property)
-        Property.objects.bulk_update(
-            properties,
-            [
-                "un_published",
-                "scraped_before",
-                "stc",
-                "property_values",
-            ]
-        )
+            id = property.get("id")
+            data = self.parser.parse(property, property.get("propertyData", {}).get("id", ""))
+            if not data:
+                self.removed.append(id)
+                continue
+            if data.get("property_table").archived:
+                self.archived.append(id)
+                continue
+            if data.get("property_table").un_published:
+                self.un_published.append(id)
+                continue
+            property_data = data.get("property_data_table").get("property")
+            if not property_data.get("current_price"):
+                self.bad_data.append(id)
+                continue
+            layout_data: Layout = data.get("layout_table")
+            if layout_data.bedrooms is None:
+                self.bad_data.append(id)
+                continue
+            property_data = data.get("property_table")
+            self.property_table_data.append(property_data)
+            property_data_data = data.get("property_data_table")
+            self.property_data_table_data.append(property_data_data)
             
-    def update_removed(self):
-        properties = []
-        for item in self.removed:
-            property = Property.objects.get(property=item)
-            property.scraped_before = True
-            property.un_published = True
-            properties.append(property)
+            self.layout_table_data.append(layout_data)
+            text_data = data.get("text_elements_table")
+            self.text_elements_table_data.append(text_data)
+            tax_data = data.get("tax_table")
+            self.tax_table_data.append(tax_data)
+            ownership_data = data.get("ownership_table")
+            self.ownership_table_data.append(ownership_data)
+            epc_data = data.get("epc_table")
+            if epc_data:
+                self.epc_table_data.append(epc_data)
+            location_data = data.get("location_table")
+            self.location_table_data.append(location_data)
+            station_data = data.get("station_table")
+            self.station_table_data.extend(station_data)
+            station_distance_data = data.get("station_distance_table")
+            self.station_distance_table_data.extend(station_distance_data)
+            estate_agent_data = data.get("estate_agent_table")
+            self.estate_agent_table_data.append(estate_agent_data)
+            price_data = data.get("price_table")
+            self.price_table_data.append(price_data)
+            key_feature_data = data.get("key_feature_table")
+            self.key_feature_table_data.extend(key_feature_data)
+            status_data = data.get("status_table")
+            self.status_table_data.append(status_data)
+            image_data = data.get("image_table")
+            self.image_table_data.extend(image_data)
+            floorplan_data = data.get("floorplan_table")
+            self.floorplan_table_data.extend(floorplan_data)
+            room_data = data.get("room_table")
+            self.room_table_data.extend(room_data)
+            premium_data = data.get("premium_listing_table")
+            self.premium_listing_table_data.append(premium_data)
+            business_type_data = data.get("business_type_table")
+            self.business_type_table_data.append(business_type_data)
+            lettings_data = data.get("lettings_table")
+            if lettings_data:
+                self.lettings_table_data.append(lettings_data)
+            affiliation_data = data.get("affiliation_table")
+            if affiliation_data:
+                self.affiliation_table_data.extend(affiliation_data)
+                agent_affiliation_data = data.get("agent_affiliation_table")
+                self.agent_affiliation_table_data.extend(agent_affiliation_data)
+                
+    def insert_simple(self, data, model: models.Model):
+        model.objects.bulk_create(
+            data, 
+            ignore_conflicts=True
+        )
+        
+        
+    def update_bad_data(self):
+        Property.objects.bulk_update(
+            [Property.objects.get(
+                property_id = un_published
+            )
+                for un_published in self.un_published],
+                ["un_published"]
+        )
         
         Property.objects.bulk_update(
-            properties,
-            [
-                "un_published",
-                "scraped_before",
-            ]
-        )
-    
-    @staticmethod
-    def one_to_one_no_id(table, property_data, key, ignore=False):
-        table.objects.bulk_create(
-            [table(
-                **property[key]
+            [Property.objects.get(
+                property_id = archived
             )
-            for property in property_data],
-            ignore_conflicts=ignore
-        )
-    
-    @staticmethod
-    def one_to_one_list_no_id(table, property_data, name, ignore=False):
-        
-        table.objects.bulk_create(
-            [table(
-                **property
-            )
-            for property in property_data],
-            ignore_conflicts=ignore
-        )
-    
-    @staticmethod
-    def one_to_one(table, property_data, key, ignore=False):
-        table.objects.bulk_create(
-            [table(
-                property_id = property["property_id"]["property_id"],
-                **property[key]
-            )
-            for property in property_data],
-            ignore_conflicts=ignore
+                for archived in self.archived],
+                ["archived"]
         )
         
-    @staticmethod
-    def one_to_many(table, property_data, name, ignore=False):                        
-        table.objects.bulk_create(
-            [table(
-                **item
+        Property.objects.bulk_update(
+            [Property.objects.get(
+                property_id = removed
             )
-            for item in property_data],
-            ignore_conflicts=ignore
+                for removed in self.removed],
+                ["removed"]
         )
-
-    def get_update_objects(self, table, id: str|None = None) -> list:
-        if table == Property:
-            things_to_update = []
-            for idx, property in enumerate(self.properties):
-                property_obj: Property = table.objects.get(property = property["property_id"])
-                
-                property_obj.un_published = property["un_published"]
-                property_obj.scraped_before = property["scraped_before"]
-                property_obj.stc = property["stc"]
-                property_obj.property_values = PropertyValue.objects.get(property_id = property["property_id"])
-                things_to_update.append(property_obj)
-                
-        else:
-            things_to_update = [
-                {
-                    "property": table.objects.get(property_id = property[id][id]),
-                    "estate_agent": {
-                        "name": property["estate_agent"]["name"],
-                        "branch_name": property["estate_agent"]["branch_name"]
-                        }
-                } 
-                for property in self.property_data
-            ]
-            for idx, update in enumerate(things_to_update):
-                update["property"].text_elements = TextElements.objects.get(property_id=update["property"].property_id)
-                update["property"].location = Location.objects.get(property_id = update["property"].property_id)
-                update["property"].broadband = Broadband.objects.get(property_id = update["property"].property_id)
-                update["property"].epc = EPC.objects.get(property_id = update["property"].property_id)
-                update["property"].listing_type = ListingType.objects.get(property_id = update["property"].property_id)
-                update["property"].layout = Layout.objects.get(property_id = update["property"].property_id)
-                update["property"].tax = Tax.objects.get(property_id = update["property"].property_id)
-                update["property"].ownership = OwnershipRetirement.objects.get(property_id = update["property"].property_id)
-                update["property"].tenure = Tenure.objects.get(property_id = update["property"].property_id)
-                update["property"].added = Added.objects.get(property_id = update["property"].property_id)
-                if update["estate_agent"]["name"] is not None:
-                    update["property"].estate_agent = EstateAgent.objects.get(**update["estate_agent"])
-                things_to_update[idx] = update["property"]
-
-        return things_to_update
-    
-class UpdatePipeline:
-    def __init__(self): 
-        self.parser = DataParser()
-        self.property_data = []
-        self.properties = []
-        self.views = []
-        self.prices = []
-        self.statuses = []
-        self.removed = []
         
+        Property.objects.bulk_update(
+            [Property.objects.get(
+                property_id = bad_data
+            )
+                for bad_data in self.bad_data],
+                ["bad_data"]
+        )
+    
     def clear_data(self):
-        self.property_data.clear()
-        self.properties.clear()
-        self.views.clear()
-        self.prices.clear()
-        self.statuses.clear()
+        self.property_table_data.clear()
+        self.property_data_table_data.clear()
+        self.text_elements_table_data.clear()
+        self.tax_table_data.clear()
+        self.ownership_table_data.clear()
+        self.epc_table_data.clear()
+        self.location_table_data.clear()
+        self.layout_table_data.clear()
+        self.station_table_data.clear()
+        self.station_distance_table_data.clear()
+        self.estate_agent_table_data.clear()
+        self.price_table_data.clear()
+        self.key_feature_table_data.clear()
+        self.status_table_data.clear()
+        self.image_table_data.clear()
+        self.floorplan_table_data.clear()
+        self.room_table_data.clear()
+        self.premium_listing_table_data.clear()
+        self.business_type_table_data.clear()
+        self.lettings_table_data.clear()
+        self.affiliation_table_data.clear()
+        self.agent_affiliation_table_data.clear()
+        self.un_published.clear()
+        self.archived.clear()
         self.removed.clear()
-        
-    def store_data(self, data: dict):
-        self.property_data.append(data["single"])
-        self.properties.append(data["property"])
-        self.views.extend(data["views"])
-        self.prices.extend(data["prices"])
-        self.statuses.extend(data["statuses"])    
+        self.bad_data.clear()
     
-    def filter_properties(self, property: dict):
-        if not property.get("props") and not property.get("analyticsInfo"):
-            self.removed.append(property["id"])
-        else:
-            data = self.parser.parse(property, property["id"])
-            self.store_data(data)
-    
-    def process_items_manually(self, properties: list[dict]):
-        for property in properties:
-            self.filter_properties(property)
-        
-        try:
-            self.update()
-            self.update_removed()
-            self.clear_data()
-        except:
-            self.clear_data()
-        
-    def update(self):
-        self.one_to_many(Views, self.views, "views", True)
-        self.one_to_many(Prices, self.prices, "prices", True)
-        self.one_to_many(Statuses, self.statuses, "statuses", True)
-        property_values = self.get_update_objects("property_id")
-        PropertyValue.objects.bulk_update(
-            property_values,
-            [
-                "text_elements",
-                "location",
-                "broadband",
-                "epc",
-                "listing_type",
-                "layout",
-                "tax",
-                "ownership",
-                "tenure",
-                "estate_agent",
-                "added",
-            ]
+    def queries(self):
+        self.insert_simple(self.text_elements_table_data, Text)
+        self.insert_simple(self.tax_table_data, Tax)
+        self.insert_simple(self.ownership_table_data, Ownership)
+        self.insert_simple(self.epc_table_data, Epc)
+        self.insert_simple(self.location_table_data, Location)
+        self.insert_simple(self.layout_table_data, Layout)
+        self.insert_simple(self.station_table_data, Station)
+        self.insert_simple(self.estate_agent_table_data, EstateAgent)
+        self.insert_simple(self.affiliation_table_data, Affiliation)
+        self.insert_simple(self.business_type_table_data, BusinessType)
+        self.insert_simple(self.lettings_table_data, LettingInfo)
+        PropertyData.objects.bulk_create(
+            [PropertyData(
+                **property["property"],
+                text = Text.objects.get(
+                    property_id=property["property"]["property_id"]
+                    ),
+                tax = Tax.objects.get(
+                    property_id=property["property"]["property_id"]
+                    ),
+                epc = Epc.objects.filter(
+                    property_id=property["property"]["property_id"])[0] 
+                        if len(
+                            Epc.objects.filter(
+                                property_id=property["property"]["property_id"]
+                                )
+                        ) == 1 else None,
+                location = Location.objects.get(
+                    property_id=property["property"]["property_id"]
+                    ),
+                layout = Layout.objects.get(
+                    property_id=property["property"]["property_id"]
+                    ),
+                agent = EstateAgent.objects.get(
+                    agent_name = property.get("agent").agent_name,
+                    branch_name = property.get("agent").branch_name
+                    ),
+                business_type = BusinessType.objects.filter(
+                    property_id=property["property"]["property_id"])[0]
+                        if len(
+                            BusinessType.objects.filter(
+                                property_id=property["property"]["property_id"]
+                                )
+                        ) == 1 else None,            
+                ) for property in self.property_data_table_data],
+            ignore_conflicts=True
         )
-    
-    @staticmethod
-    def one_to_many(table, property_data, name, ignore=False):        
-        table.objects.bulk_create(
-            [table(
-                **item
-            )
-            for item in property_data],
-            ignore_conflicts=ignore
-        )
-    
-    def get_update_objects(self, id: str|None = None) -> list:
-        things_to_update = [
-            {
-                "property": PropertyValue.objects.get(property_id = property[id][id]),
-                "estate_agent": {
-                    "name": property["estate_agent"]["name"],
-                    "branch_name": property["estate_agent"]["branch_name"]
-                    }
-            } 
-            for property in self.property_data
-        ]
-        for idx, update in enumerate(things_to_update):
-            update["property"].text_elements = TextElements.objects.get(property_id=update["property"].property_id)
-            update["property"].location = Location.objects.get(property_id = update["property"].property_id)
-            update["property"].broadband = Broadband.objects.get(property_id = update["property"].property_id)
-            update["property"].epc = EPC.objects.get(property_id = update["property"].property_id)
-            update["property"].listing_type = ListingType.objects.get(property_id = update["property"].property_id)
-            update["property"].layout = Layout.objects.get(property_id = update["property"].property_id)
-            update["property"].tax = Tax.objects.get(property_id = update["property"].property_id)
-            update["property"].ownership = OwnershipRetirement.objects.get(property_id = update["property"].property_id)
-            update["property"].tenure = Tenure.objects.get(property_id = update["property"].property_id)
-            update["property"].added = Added.objects.get(property_id = update["property"].property_id)
-            if update["estate_agent"]["name"] is not None:
-                update["property"].estate_agent = EstateAgent.objects.get(**update["estate_agent"])
-            things_to_update[idx] = update["property"]
-
-        return things_to_update
-    
-    def update_removed(self):
-        properties = []
-        for item in self.removed:
-            property = Property.objects.get(property=item)
+        
+        
+        for idx, property in enumerate(self.property_table_data):
+            property: Property
+            property.property_data = PropertyData.objects.get(property_id = property.property_id)
             property.scraped_before = True
-            property.un_published = True
-            properties.append(property)
+            self.property_table_data[idx] = property
         
         Property.objects.bulk_update(
-            properties,
-            [
-                "un_published",
-                "scraped_before",
-            ]
+                self.property_table_data,
+                ["archived", "un_published", "stc", "property_data", "scraped_before"],
         )
+        
+        Price.objects.bulk_create(
+            [Price(
+                property_id = Property.objects.get(property_id = price_data["property_id"]),
+                price = price_data["price"],
+                price_qualifier = price_data["price_qualifier"],
+                original_price = price_data["original_price"],
+                price_date = price_data["price_date"],
+            )for price_data in self.price_table_data],
+            ignore_conflicts=True
+        )
+        
+        Status.objects.bulk_create(
+            [Status(
+                property_id = Property.objects.get(
+                    property_id = status_data["property_id"]
+                    ),
+                stc = status_data["stc"],
+                status_date = status_data["status_date"]
+            )for status_data in self.status_table_data],
+            ignore_conflicts=True
+        )
+        
+        KeyFeature.objects.bulk_create(
+            [KeyFeature(
+                property_id = Property.objects.get(property_id = feature_data["property_id"]),
+                feature = feature_data["feature"]
+            )for feature_data in self.key_feature_table_data],
+            ignore_conflicts=True
+        )
+        
+        Image.objects.bulk_create(
+            [Image(
+                property_id = Property.objects.get(property_id = image_data["property_id"]),
+                image_url = image_data["image_url"],
+                image_caption = image_data["image_caption"],
+            ) for image_data in self.image_table_data],
+            ignore_conflicts=True
+        )
+        
+        Floorplan.objects.bulk_create(
+            [Floorplan(
+                property_id = Property.objects.get(property_id = floorplan_data["property_id"]),
+                floorplan_url = floorplan_data["floorplan_url"],
+                floorplan_caption = floorplan_data["floorplan_caption"],
+            ) for floorplan_data in self.floorplan_table_data],
+            ignore_conflicts=True
+        )
+        
+        Room.objects.bulk_create(
+            [Room(
+                property_id = Property.objects.get(property_id = room_data["property_id"]),
+                room_name = room_data["room_name"],
+                room_description = room_data["room_description"],
+                room_width = room_data["room_width"],
+                room_length = room_data["room_length"],
+                room_unit = room_data["room_unit"],
+                room_dimension = room_data["room_dimension"],
+            ) for room_data in self.room_table_data],
+            ignore_conflicts=True
+        )
+        
+        PremiumListing.objects.bulk_create(
+            [PremiumListing(
+                property_id = Property.objects.get(property_id = premium_data["property_id"]),
+                featured_property = premium_data["featured_property"],
+                premium_listing = premium_data["premium_listing"],
+                listing_date = premium_data["listing_date"],
+            ) for premium_data in self.premium_listing_table_data],
+            ignore_conflicts=True
+        )
+        
+        StationDistance.objects.bulk_create(
+            [StationDistance(
+                station_id = Station.objects.get(station_name = station.get("station_id")),
+                property_id = PropertyData.objects.get(property_id = station.get("property_id")),
+                station_distance = station.get("station_distance"),
+                station_distance_unit = station.get("station_distance_unit"),
+            )for station in self.station_distance_table_data],
+            ignore_conflicts=True
+        )
+        
+        AgentAffiliation.objects.bulk_create(
+            [AgentAffiliation(
+                affiliation_id = Affiliation.objects.get(affiliation_name = affiliation.get("affiliation_id").affiliation_name),
+                agent_id = EstateAgent.objects.get(agent_name = affiliation.get("agent_id").agent_name, branch_name = affiliation.get("agent_id").branch_name)
+            ) for affiliation in self.agent_affiliation_table_data],
+            ignore_conflicts=True
+        )
+        
+    def insert_data(self, data: list[dict]):
+        self.process_data(data)
+    
+        try:
+            self.queries()
+        except Exception as e:
+            print(e)
+            
+        self.update_bad_data()
+        
+        self.clear_data()
+
+class UpdatePipeline:
+    def __init__(self):
+        self.parser = RightmoveParser()
+        self.property_table_data = []
+        self.property_data_table_data = []
+        self.price_table_data = []
+        self.status_table_data = []
+        self.premium_listing_table_data = []
+        self.un_published = []
+        self.archived = []
+        self.removed = []
+        self.bad_data = []
+
+    def process_data(self, properties):
+        for property in properties:
+            property: dict
+            id = property.get("id")
+            data = self.parser.parse_update(property, property.get("propertyData", {}).get("id", ""))
+            if not data:
+                self.removed.append(id)
+                continue
+            elif data.get("property_table").archived:
+                self.archived.append(id)
+                continue
+            elif data.get("property_table").un_published:
+                self.un_published.append(id)
+                continue
+            
+            property_data = data.get("property_table")
+            self.property_table_data.append(property_data)
+            
+            property_data_data = data.get("property_data_table")
+            self.property_data_table_data.append(property_data_data)
+            
+            price_data = data.get("price_table")
+            self.price_table_data.append(price_data)
+            status_data = data.get("status_table")
+            self.status_table_data.append(status_data)
+            premium_data = data.get("premium_listing_table")
+            self.premium_listing_table_data.append(premium_data)
+    
+    def update_bad_data(self):
+        Property.objects.bulk_update(
+            [Property.objects.get(
+                property_id = un_published
+            )
+                for un_published in self.un_published],
+                ["un_published"]
+        )
+        
+        Property.objects.bulk_update(
+            [Property.objects.get(
+                property_id = archived
+            )
+                for archived in self.archived],
+                ["archived"]
+        )
+        
+        Property.objects.bulk_update(
+            [Property.objects.get(
+                property_id = removed
+            )
+                for removed in self.removed],
+                ["removed"]
+        )
+        
+        Property.objects.bulk_update(
+            [Property.objects.get(
+                property_id = bad_data
+            )
+                for bad_data in self.bad_data],
+                ["bad_data"]
+        )
+    
+    def clear_data(self):
+        self.property_table_data.clear()
+        self.property_data_table_data.clear()
+        self.price_table_data.clear()
+        self.status_table_data.clear()
+        self.premium_listing_table_data.clear()
+        self.un_published.clear()
+        self.archived.clear()
+        self.removed.clear()
+        self.bad_data.clear()
+        
+    def queries(self):
+        PropertyData.objects.bulk_update(
+        self.property_data_table_data,
+            ["current_price", "reduced"]
+        )
+        
+        Property.objects.bulk_update(
+                self.property_table_data,
+                ["stc"]
+        )
+        
+        Price.objects.bulk_create(
+            [Price(
+                property_id = Property.objects.get(property_id = price_data["property_id"]),
+                price = price_data["price"],
+                price_qualifier = price_data["price_qualifier"],
+                original_price = price_data["original_price"],
+                price_date = price_data["price_date"],
+            )for price_data in self.price_table_data],
+            ignore_conflicts=True
+        )
+        Status.objects.bulk_create(
+            [Status(
+                property_id = Property.objects.get(
+                    property_id = status_data["property_id"]
+                    ),
+                stc = status_data["stc"],
+                status_date = status_data["status_date"]
+            )for status_data in self.status_table_data],
+            ignore_conflicts=True
+        )    
+        
+    def update_data(self, data: list[dict]):
+        self.process_data(data)
+        try:
+            self.queries()
+        except Exception as e:
+            print(e)
+            
+        self.update_bad_data()
+        
+        self.clear_data()
         
 class EpcPipeline:
     def __init__(self) -> None:
@@ -384,20 +483,21 @@ class EpcPipeline:
         try:
             self.insert()
             self.epcs.clear()
-        except:
+        except Exception as e:
+            print(e)
             self.epcs.clear()
         
     def insert(self):
         updates = []
         for epc_data in self.epcs:
-            epc = EPC.objects.get(property_id = epc_data["property_id"])
+            epc = Epc.objects.get(property_id = epc_data["property_id"])
             epc.epc_image = epc_data["scraped_info"].get("epc_image")
             epc.epc_current = epc_data["scraped_info"].get("epc_current")
             epc.epc_potential = epc_data["scraped_info"].get("epc_potential")
             epc.epc_scraped = epc_data["scraped_info"].get("epc_scraped")
             updates.append(epc)
         
-        EPC.objects.bulk_update(
+        Epc.objects.bulk_update(
             updates,
             [
                 "epc_image",
@@ -416,26 +516,36 @@ class ImagePipeline:
         try:
             self.insert()
             self.images.clear()
-        except:
+        except Exception as e:
+            print(e)
             self.images.clear()
     
     def insert(self):
-        updates = []
-        for image in self.images:
-            image_property = ImageProperty.objects.get(property=image["property"], image_id=image["image_id"])
-            image_property.image_scraped = True
-            updates.append(image_property)         
+        primary_keys = [image for image in self.images]
+        images = Image.objects.filter(pk__in=primary_keys)
+        for image in images:
+            image.image_file = self.images[image.pk]["image_file"]
+            image.image_scraped = True
+        # for image in self.images:
+        #     image_property = Image.objects.get(pk=image["pk"])
+        #     image_property.image_scraped = True
+        #     updates.append(image_property)         
         
-        Images.objects.bulk_create(
-            [Images(
-                composite_id = image["composite_id"],
-                image_file = SimpleUploadedFile(f"{image['composite_id']}.png", ContentFile(image["image_binary"]).read(), content_type="image/png")
-            ) for image in self.images]
+        Image.objects.bulk_update(
+            images,
+            ["image_file", "image_scraped"]
         )
         
-        ImageProperty.objects.bulk_update(
-            updates,
-            [
-                "image_scraped"
-            ]
-        )
+        # Images.objects.bulk_create(
+        #     [Images(
+        #         composite_id = image["composite_id"],
+        #         image_file = SimpleUploadedFile(f"{image['composite_id']}.png", ContentFile(image["image_binary"]).read(), content_type="image/png")
+        #     ) for image in self.images]
+        # )
+        
+        # ImageProperty.objects.bulk_update(
+        #     updates,
+        #     [
+        #         "image_scraped"
+        #     ]
+        # )

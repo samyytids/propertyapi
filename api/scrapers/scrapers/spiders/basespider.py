@@ -41,8 +41,8 @@ class BasespiderSpider(ABC, scrapy.Spider):
         self.close_spider(reason)
     
     def close_spider(self, reason):
-        self.insert_pipeline.process_items_manually(self.insert_data)
-        self.update_pipeline.process_items_manually(self.update_data)
+        self.insert_pipeline.insert_data(self.insert_data)
+        self.update_pipeline.update_data(self.update_data)
         self.insert_data.clear()
         self.update_data.clear()
         if (time.time() - self.start_time)/60 > 0.25:
