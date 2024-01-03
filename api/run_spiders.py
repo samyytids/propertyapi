@@ -104,8 +104,8 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
         deferred.addCallback(lambda _: crawl_sequentially(process, crawlers[1:]))
     
 if __name__ == "__main__":
-    # crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
-    crawlers = [EpcSpider]
+    crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
+    # crawlers = [EpcSpider]
     process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
         "HTTPCACHE_ENABLED":False,
