@@ -79,7 +79,7 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
         filter = (Q(stc = False) & Q(un_published = False) & Q(archived = False) & Q(removed=False) & Q(bad_data = False) & Q(scraped_before=False))
         properties = Property.objects.filter(filter).values_list("property_id", "property_url", "scraped_before")
         properties = sorted(properties, key=lambda x: x[2])
-        properties = properties[:500]
+        # properties = properties[:500]
         mapper = {}
         urls = []
         
@@ -104,7 +104,8 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
         deferred.addCallback(lambda _: crawl_sequentially(process, crawlers[1:]))
     
 if __name__ == "__main__":
-    crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
+    # crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
+    crawlers = [EpcSpider]
     process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
         "HTTPCACHE_ENABLED":False,
@@ -114,4 +115,4 @@ if __name__ == "__main__":
     
     crawl_sequentially(process=process, crawlers=crawlers)
     process.start()
-    print(Epc.objects.filter(epc_current__isnull=False).values("epc_url", "epc_current", "epc_potential", "property_id"))
+    # print(Epc.objects.filter(epc_current__isnull=False).values("epc_url", "epc_current", "epc_potential", "property_id"))

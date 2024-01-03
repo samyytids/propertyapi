@@ -176,12 +176,12 @@ class RightmoveParser:
         if property_data.get("listing_type"):
             _, transaction_type = property_data.get("listing_type").split("_")
         
-        
         current_price = property_data.get("prices", {}).get("primaryPrice", "").replace("£", "").replace(",", "")
+        
         if transaction_type == "LET":
             current_price = current_price.split(" ")[0]
         
-        if current_price == "POA" or current_price == "Offers Invited" or current_price == "Offers":
+        if not bool(re.search(r"\d", current_price)):
             current_price = -1
                 
         reduced = True if "Reduced" in property_data.get("listing_history", {}).get("listingUpdateReason", "") else False
@@ -191,12 +191,6 @@ class RightmoveParser:
         property_data.current_price = current_price
         
         result = property_data
-        
-        # result = {
-        #     "property_id": PropertyData.objects.get(property_id = id),
-        #     "current_price" : current_price,
-        #     "reduced" : reduced,
-        # }
         
         return result
     
@@ -229,12 +223,13 @@ class RightmoveParser:
         pre_owned = analytics_property.get("pre_owned")
         furnished = analytics_property.get("furnished")
         current_price = property_data.get("prices", {}).get("primaryPrice", "").replace("£", "").replace(",", "")
+        
         if transaction_type == "LET":
             current_price = current_price.split(" ")[0]
         
-        if current_price == "POA" or current_price == "Offers Invited" or current_price == "Offers":
+        if not bool(re.search(r"\d", current_price)):
             current_price = -1
-                
+             
         reduced = True if "Reduced" in property_data.get("listing_history", {}).get("listingUpdateReason", "") else False
         online_viewing = analytics_property.get("online_viewing", False)
         
@@ -525,8 +520,10 @@ class RightmoveParser:
             price = price.split(" ")[0]
         
         price = price.replace("£", "").replace(",", "")
-        if price == "POA" or price == "Offers Invited" or price == "Offers":
+        
+        if not bool(re.search(r"\d", price)):
             price = -1
+            
         price_qualifier: str = price_data.get("displayPriceQualifier")
         price_qualifier = price_qualifier.lower()
         
@@ -568,8 +565,10 @@ class RightmoveParser:
             price = price.split(" ")[0]
             
         price = price.replace("£", "").replace(",", "")
-        if price == "POA" or price == "Offers Invited" or price == "Offers":
+        
+        if not bool(re.search(r"\d", price)):
             price = -1
+            
         price_qualifier: str = price_data.get("displayPriceQualifier")
         price_qualifier = price_qualifier.lower()
         
