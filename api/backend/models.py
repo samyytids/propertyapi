@@ -22,7 +22,7 @@ class PropertyData(models.Model):
     auction = models.BooleanField()
     retirement = models.BooleanField()
     affordable_scheme = models.BooleanField()
-    property_type = models.CharField(max_length=35)
+    property_type = models.CharField(max_length=35, null=True)
     property_sub_type = models.CharField(max_length=35)
     added_date = models.DateField()
     letting_type = models.CharField(max_length=30)
@@ -83,7 +83,7 @@ class Ownership(models.Model):
     shared_ownership = models.BooleanField()
     ownership_percentage = models.IntegerField(null=True)
     rent_price = models.IntegerField(null=True)
-    rent_frequency = models.CharField(max_length=30)
+    rent_frequency = models.CharField(max_length=30, null=True)
 
     class Meta:
         db_table = "ownership"

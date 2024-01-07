@@ -1,0 +1,78 @@
+1. 
+Price appreciation (capital gains).
+    As interest rates change the value of a bond changes.
+    If interest rates decrease after a bond is purchased
+    the value of that bond will increase as relative to the
+    market rate the bond offers a better return than it did
+    originally.
+    If interest rates increase after the bond if purchased the
+    opposite occurs.
+    As such investors can potentially make extra returns by 
+    selling their bonds early if interest rates move favourably.
+
+Coupon payments (interest payments).
+    Bonds typically offer coupon payments of some fixed amount
+    every X periods (this could be monthly, yearly, etc).
+    These consitute another source of return.
+
+Reinvesting coupon payments (interest payments).
+    An investor can choose to reinvest their coupon payments,
+    by doing so the investor can earn even more money.
+    Fun fact: many financial measures assume the coupon payments
+    are reinvested because it is a very common and highly rational
+    choice to make.
+
+2. 
+We have three main measures of yield each has their own set of 
+advantages and disadvantages.
+Yield to maturity (YTM).
+    This is the compound rate of return over the life of a bond
+    assuming that all coupons can be reinvested at that yield.
+    You can think of this as saying, this is the return we would
+    expect given we hold the bond to maturity and reinvest the coupon
+    payments into something that offers the same level of return as the
+    bond itself. 
+    This has some issues:
+        1. We have to hold the bond to maturity in order to get the YTM.
+            What if I don't want to hold the bond to maturity? 
+            What if I would make more money if I sold it early?
+        2. We assume that the bond issuer pays all payments in full exactly
+            on time. If this was a completely valid assumption to make 100%
+            of the time then investing in bonds would have no credit risk
+            which is obviously untrue! There is always a risk that the person
+            or firm borrowing money from you doesn't pay you back.
+        3. We have to immediately reinvest at the correct level of return in 
+            order to earn the YTM. What if there are no opportunities to reinvest
+            at the same rate as the bond? Maybe the market is going down and I make
+            less money. Or heavens forbid... What if I accidentally make too much money?
+
+Holding period return (HPR).
+    This is effectively the same as the HPR of a stock. (Capital gain + cash flows received)/price paid
+    Shockingly this also has some issues:
+        1. This is a forecasted measure of return, I sit at time 0 and my plan is
+            to sell at time 10. I don't know how much the bond will be worth at time
+            10 so I estimate my return based on my assumptions of what will happen 
+            with interest rates as well as the credit worthiness of the counterparty
+            of the bond. 
+
+Current yield.
+    This is just the coupon/market price of the bond.
+    The main issue with the current yield is:
+        1. It really only gives a very specific snapshot about the bond and doesn't consider
+            anything about future expectations. For example the current yield of a bond
+            might be 1000000000%. Sounds like a great investment right, but the company that
+            issued the bond is going bankrupt in 3 days and only has assets of £1.50. 
+            As such there's very little chance that you will actually be earning that return
+            in the future.
+
+3. 
+a. 
+We have a bond selling at par. This means that the face value is equal to the current market
+price of the bond. As such the face value is $100.
+With a coupon rate of 6% this mens our coupon payments will be $6 per year and the maturity of the
+bond is 10 years. 
+FV (face value) = 100
+CF (cash flow) = 6
+n = 10
+r = 15%
+Using the annuity formula we can get the value of this bond. 
