@@ -76,7 +76,7 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
         deferred = process.crawl(crawlers[0], mapper=mapper, start_urls=urls, num_urls=num_urls)
         
     else:
-        filter = (Q(stc = False) & Q(un_published = False) & Q(archived = False) & Q(removed=False) & Q(bad_data = False) & Q(scraped_before = True))
+        filter = (Q(stc = False) & Q(un_published = False) & Q(archived = False) & Q(removed=False) & Q(bad_data = False))
         properties = Property.objects.filter(filter).values_list("property_id", "property_url", "scraped_before")
         properties = sorted(properties, key=lambda x: x[2])
         # properties = properties[:500]
