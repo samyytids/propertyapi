@@ -104,7 +104,7 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
         deferred.addCallback(lambda _: crawl_sequentially(process, crawlers[1:]))
     
 if __name__ == "__main__":
-    if len(sys.argv) == 0:
+    if len(sys.argv) == 1:
         crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
     else:
         crawlers = [ImageSpider]

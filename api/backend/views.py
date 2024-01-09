@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.db.models import QuerySet
+from django.core import serializers
 from backend.models import *
 from django.db.models import F
 from django.db.models import Q
@@ -22,5 +23,10 @@ def filter_view(request):
     parameters = json.loads(parameters)
     property_parameters: dict = parameters.get("property")
     property_filters = get_filters(property_parameters)
-    properties = Property.objects.filter(**property_filters).select_related("property_data").prefetch_related("prices")
+    properties = Property.objects.filter(**property_filters).select_related("property_data").prefetch_related("prices", "keyfeature_set", "status_set", "image_set", "floorplan_set", "room_set", "premiumlisting_set")
+    try:
+        result = serializers.serialize("json", properties)
+        print(result)
+    except Exception as e:
+        print(e)
        
