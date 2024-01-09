@@ -471,7 +471,7 @@ class UpdatePipeline:
                     ),
                 featured_property = premium_listing_data["featured_property"],
                 premium_listing = premium_listing_data["premium_listing"],
-                listing_data = premium_listing_data["listing_date"]
+                listing_date = premium_listing_data["listing_date"]
             )for premium_listing_data in self.premium_listing_table_data],
             ignore_conflicts=True
         )    
