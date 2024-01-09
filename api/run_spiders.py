@@ -41,7 +41,7 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
             if any(
                 substring in epc[1] for substring in [
                         "jupix", "Document", "kea.pmp",
-                        "ewemove", ".pdf", ".gov.uk",
+                        "ewemove", ".pdf",
                         ".png", ".jpeg", ".jpg",
                         ".JPG", ".PNG", ".JPEG"
                     ]
@@ -104,8 +104,8 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
         deferred.addCallback(lambda _: crawl_sequentially(process, crawlers[1:]))
     
 if __name__ == "__main__":
-    crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
-    # crawlers = [EpcSpider]
+    # crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
+    crawlers = [EpcSpider]
     process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
         "HTTPCACHE_ENABLED":False,
@@ -115,4 +115,4 @@ if __name__ == "__main__":
     
     crawl_sequentially(process=process, crawlers=crawlers)
     process.start()
-    # print(Epc.objects.filter(epc_current__isnull=False).values("epc_url", "epc_current", "epc_potential", "property_id"))
+    print(len(Epc.objects.filter(epc_scraped=True).values("epc_url", "epc_current", "epc_potential", "property_id")))

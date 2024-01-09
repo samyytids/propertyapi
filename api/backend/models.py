@@ -174,7 +174,7 @@ class AgentAffiliation(models.Model):
         unique_together = [["affiliation_id", "agent_id"]]
 
 class Price(models.Model):
-    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="prices")
     price = models.IntegerField()
     price_qualifier = models.CharField(max_length=50, null=True)
     original_price = models.BooleanField()

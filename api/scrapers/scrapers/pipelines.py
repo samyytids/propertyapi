@@ -452,6 +452,7 @@ class UpdatePipeline:
             )for price_data in self.price_table_data],
             ignore_conflicts=True
         )
+        
         Status.objects.bulk_create(
             [Status(
                 property_id = Property.objects.get(
@@ -462,6 +463,19 @@ class UpdatePipeline:
             )for status_data in self.status_table_data],
             ignore_conflicts=True
         )    
+        
+        PremiumListing.objects.bulk_create(
+            [PremiumListing(
+                property_id = Property.objects.get(
+                    property_id = premium_listing_data["property_id"]
+                    ),
+                featured_property = premium_listing_data["featured_property"],
+                premium_listing = premium_listing_data["premium_listing"],
+                listing_data = premium_listing_data["listing_date"]
+            )for premium_listing_data in self.premium_listing_table_data],
+            ignore_conflicts=True
+        )    
+        
         
     def update_data(self, data: list[dict]):
         self.process_data(data)
