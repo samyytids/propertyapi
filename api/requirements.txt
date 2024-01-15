@@ -16,7 +16,7 @@ constantly==23.10.4
 cryptography==41.0.5
 cssselect==1.2.0
 Django==4.2.7
-djangorestframework=3.14.0
+djangorestframework==3.14.0
 etelemetry==0.3.1
 exceptiongroup==1.2.0
 filelock==3.13.1
