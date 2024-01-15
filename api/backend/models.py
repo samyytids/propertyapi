@@ -91,7 +91,7 @@ class Ownership(models.Model):
         
 class Epc(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
-    epc_url = models.URLField(null=True)
+    epc_url = models.URLField(null=True, max_length=300)
     epc_caption = models.CharField(max_length=255, null=True)
     epc_current = models.IntegerField(null=True)
     epc_potential = models.IntegerField(null=True)
