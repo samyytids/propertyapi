@@ -13,6 +13,7 @@ class Property(models.Model):
 
     class Meta:
         db_table = "property"
+        ordering = ["property_id"]
 class PropertyData(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
     property_url = models.URLField()
@@ -80,7 +81,7 @@ class Tax(models.Model):
 
 class Ownership(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
-    shared_ownership = models.BooleanField()
+    shared_ownership = models.BooleanField(null=True)
     ownership_percentage = models.IntegerField(null=True)
     rent_price = models.IntegerField(null=True)
     rent_frequency = models.CharField(max_length=30, null=True)
