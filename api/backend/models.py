@@ -2,7 +2,7 @@ from django.db import models
 
 class Property(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
-    property_url = models.URLField()
+    property_url = models.URLField(max_length=300)
     scraped_before = models.BooleanField(default=False)
     un_published = models.BooleanField(default=False)
     archived = models.BooleanField(default=False)
@@ -16,7 +16,7 @@ class Property(models.Model):
         ordering = ["property_id"]
 class PropertyData(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
-    property_url = models.URLField()
+    property_url = models.URLField(max_length=300)
     listing_type = models.CharField(max_length=3)
     transaction_type = models.CharField(max_length=3)
     virtual_tour = models.BooleanField()
@@ -28,7 +28,7 @@ class PropertyData(models.Model):
     added_date = models.DateField()
     letting_type = models.CharField(max_length=30)
     pre_owned = models.CharField(max_length=30)
-    furnished = models.CharField(max_length=50)
+    furnished = models.CharField(max_length=100)
     current_price = models.IntegerField()
     reduced = models.BooleanField()
     online_viewing = models.BooleanField()
@@ -74,7 +74,7 @@ class Tax(models.Model):
     ground_rent_review_period_in_years = models.IntegerField(null=True)
     ground_rent_percentage_increase = models.IntegerField(null=True)
     annual_service_charge = models.IntegerField(null=True)
-    council_tax_band = models.CharField(max_length=50, null=True)
+    council_tax_band = models.CharField(max_length=100, null=True)
     domestic_rates = models.IntegerField(null=True)
     class Meta:
         db_table = "tax"
@@ -109,7 +109,7 @@ class Epc(models.Model):
 class Location(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
     address = models.CharField(max_length=255)
-    country = models.CharField(max_length=50, null=True)
+    country = models.CharField(max_length=100, null=True)
     postcode = models.CharField(max_length=9)
     latitude = models.DecimalField(max_digits=50, decimal_places=10, null=True)
     longitude = models.DecimalField(max_digits=50, decimal_places=10, null=True)
@@ -144,7 +144,7 @@ class StationDistance(models.Model):
 
 class EstateAgent(models.Model):
     agent_type = models.CharField(max_length=255)
-    agent_url = models.URLField()
+    agent_url = models.URLField(max_length=300)
     agent_url_type = models.CharField(max_length=255)
     agent_name = models.CharField(max_length=255)
     branch_name = models.CharField(max_length=255, null=True)
@@ -177,7 +177,7 @@ class AgentAffiliation(models.Model):
 class Price(models.Model):
     property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="prices")
     price = models.IntegerField()
-    price_qualifier = models.CharField(max_length=50, null=True)
+    price_qualifier = models.CharField(max_length=100, null=True)
     original_price = models.BooleanField()
     price_date = models.DateField()
     
@@ -204,7 +204,7 @@ class Status(models.Model):
         
 class Image(models.Model):
     property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
-    image_url = models.URLField()
+    image_url = models.URLField(max_length=300)
     image_caption = models.CharField(max_length=255, null=True)
     image_file = models.ImageField(upload_to="image/", null=True)
     image_scraped = models.BooleanField(default=False)
@@ -215,7 +215,7 @@ class Image(models.Model):
         
 class Floorplan(models.Model):
     property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
-    floorplan_url = models.URLField()
+    floorplan_url = models.URLField(max_length=300)
     floorplan_caption = models.CharField(max_length=255, null=True)
     floorplan_file = models.ImageField(upload_to="floorplan/", null=True)
     
@@ -230,7 +230,7 @@ class Room(models.Model):
     room_width = models.DecimalField(max_digits=7, decimal_places=2, null=True)
     room_length = models.DecimalField(max_digits=7, decimal_places=2, null=True)
     room_unit = models.CharField(max_length=4, null=True)
-    room_dimension = models.CharField(max_length=50, null=True)
+    room_dimension = models.CharField(max_length=100, null=True)
     
     class Meta:
         db_table = "room"
@@ -260,7 +260,7 @@ class LettingInfo(models.Model):
     deposit = models.IntegerField(null=True)
     minimum_tenancy_length = models.IntegerField(null=True)
     let_type = models.CharField(max_length=30, null=True)
-    furnishing_type = models.CharField(max_length=50, null=True)
+    furnishing_type = models.CharField(max_length=100, null=True)
     
     class Meta:
         db_table = "letting info"
