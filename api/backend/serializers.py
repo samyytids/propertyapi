@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.fields import empty
 from backend.models import *
+from rest_framework.serializers import ListSerializer
 
 class DynamicFieldsModelSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
@@ -185,31 +186,31 @@ class PropertySerializer(DynamicFieldsModelSerializer, serializers.ModelSerializ
         ]
         
     def __init__(self, *args, **kwargs):
-        submitted_fields = kwargs.pop('fields', None)
+        submitted_fields: dict = kwargs.pop('fields', None)
         super().__init__(*args, **kwargs)
-                
-        if submitted_fields is not None:
-            allowed = [list(item.keys())[0] if isinstance(item, dict) else item for item in submitted_fields["property"]]
-            allowed = set(allowed)
-            existing = set(self.fields)
-            for field_name in existing - allowed:
-                self.fields.pop(field_name)
         
-        
-        def get_fields(all_fields: dict, submitted_fields: dict):
-            for key, value in all_fields.items():
-                if not key in submitted_fields:
-                    all_fields.pop(key)
-        
-        def get_fields(input: dict, result: dict) -> dict:
-            result = {}
-            for key, value in input.items():
-                for field in value:
-                    if isinstance(field, dict):
-                        result[key] = get_fields(field, result[key])
+        def get_fields(submitted_fields: dict, self: PropertySerializer, result: dict):
+            for key, value in submitted_fields.items():
+                if isinstance(value, dict):
+                    sub_serializer = self.fields[key]
+                    result[key] = {}
+                    sub_serializer.fields = get_fields(submitted_fields[key], self.fields[key], result[key])
+                    result[key] = sub_serializer
+                else:
+                    if type(self) == ListSerializer:
+                        self: ListSerializer
+                        result[key] = self.child.fields
                     else:
-                        result[key][field] = ""
+                        result[key] = self.fields[key]
             return result
+        
+        try:
+            self.fields = get_fields(submitted_fields, self, {})
+        except Exception as e:
+            print(e)
+        
+        
+        
 
         
         
