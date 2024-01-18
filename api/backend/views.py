@@ -26,10 +26,13 @@ class FilterView(APIView):
     def get(self, request, *args, **kwargs):
         parameters = request.GET.get("params")
         page_size = int(request.GET.get("page_size"))
+        sample_size = int(request.GET.get("sample_size"))
         parameters = json.loads(parameters)
         property_filter_inputs: dict = parameters.get("property")
         property_filters = get_filters(property_filter_inputs)
         properties = Property.objects.filter(**property_filters)
+        if sample_size:
+            properties = properties[0:sample_size]
         paginator = self.pagination_class()
         paginator.page_size = page_size
         paginator.page_query_param = "page"
