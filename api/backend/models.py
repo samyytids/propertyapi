@@ -84,7 +84,7 @@ class Ownership(models.Model):
     shared_ownership = models.BooleanField(null=True)
     ownership_percentage = models.IntegerField(null=True)
     rent_price = models.IntegerField(null=True)
-    rent_frequency = models.CharField(max_length=30, null=True)
+    rent_frequency = models.CharField(max_length=50, null=True)
 
     class Meta:
         db_table = "ownership"
