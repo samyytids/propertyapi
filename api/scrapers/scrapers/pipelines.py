@@ -1,9 +1,3 @@
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-
-# useful for handling different item types with a single interface
 import django
 import os
 import sys
@@ -124,37 +118,15 @@ class InsertPipeline:
         
         
     def update_bad_data(self):
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = un_published
-            )
-                for un_published in self.un_published],
-                ["un_published"]
-        )
+        all = list(set(
+            self.un_published + self.archived + self.removed + self.bad_data
+        ))
         
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = archived
-            )
-                for archived in self.archived],
-                ["archived"]
-        )
-        
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = removed
-            )
-                for removed in self.removed],
-                ["removed"]
-        )
-        
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = bad_data
-            )
-                for bad_data in self.bad_data],
-                ["bad_data"]
-        )
+        Property.objects.filter(property_id__in = self.archived).update(archived=True)
+        Property.objects.filter(property_id__in = self.removed).update(removed=True)
+        Property.objects.filter(property_id__in = self.bad_data).update(bad_data=True)
+        Property.objects.filter(property_id__in = self.un_published).update(un_published=True)
+        Property.objects.filter(property_id__in = all).update(scraped_before=True)
     
     def clear_data(self):
         self.property_table_data.clear()
@@ -336,12 +308,12 @@ class InsertPipeline:
         
     def insert_data(self, data: list[dict]):
         self.process_data(data)
-    
+        
         try:
             self.queries()
         except Exception as e:
             print(e)
-            
+        
         self.update_bad_data()
         
         self.clear_data()
@@ -388,37 +360,15 @@ class UpdatePipeline:
             self.premium_listing_table_data.append(premium_data)
     
     def update_bad_data(self):
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = un_published
-            )
-                for un_published in self.un_published],
-                ["un_published"]
-        )
+        all = list(set(
+            self.un_published + self.archived + self.removed + self.bad_data
+        ))
         
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = archived
-            )
-                for archived in self.archived],
-                ["archived"]
-        )
-        
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = removed
-            )
-                for removed in self.removed],
-                ["removed"]
-        )
-        
-        Property.objects.bulk_update(
-            [Property.objects.get(
-                property_id = bad_data
-            )
-                for bad_data in self.bad_data],
-                ["bad_data"]
-        )
+        Property.objects.filter(property_id__in = self.archived).update(archived=True)
+        Property.objects.filter(property_id__in = self.removed).update(removed=True)
+        Property.objects.filter(property_id__in = self.bad_data).update(bad_data=True)
+        Property.objects.filter(property_id__in = self.un_published).update(un_published=True)
+        Property.objects.filter(property_id__in = all).update(scraped_before=True)
     
     def clear_data(self):
         self.property_table_data.clear()
