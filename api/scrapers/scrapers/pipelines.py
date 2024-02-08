@@ -474,7 +474,6 @@ class EpcPipeline:
             ]
         )
 
-from celery import shared_task
 class ImagePipeline:
     def __init__(self) -> None:
         self.images = []
