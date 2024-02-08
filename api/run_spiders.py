@@ -108,7 +108,14 @@ if __name__ == "__main__":
         crawlers = [RightmoveSpider, ImageSpider, EpcSpider]
     else:
         # crawlers = [ImageSpider]
-        print(len(Property.objects.filter(key_features__word_count__lte=1)))
+        kf = KeyFeature.objects.all()
+        for item in kf:
+            item.word_count = len(item.feature.split(" "))
+        
+        KeyFeature.objects.bulk_update(
+            kf,
+            ["word_count"]
+        )
         
     process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
