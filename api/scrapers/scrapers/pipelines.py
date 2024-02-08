@@ -10,6 +10,8 @@ django.setup()
 
 from backend.rightmove_parser import RightmoveParser
 from backend.models import *
+from PIL import Image as PilImage
+from io import BytesIO  
 
 class InsertPipeline:
     def __init__(self):
@@ -242,10 +244,11 @@ class InsertPipeline:
         KeyFeature.objects.bulk_create(
             [KeyFeature(
                 property_id = Property.objects.get(property_id = feature_data["property_id"]),
-                feature = feature_data["feature"]
+                feature = feature_data["feature"],
+                word_count = feature_data["word_count"]
             )for feature_data in self.key_feature_table_data],
             ignore_conflicts=True
-        )
+            )
         
         Image.objects.bulk_create(
             [Image(
@@ -471,6 +474,7 @@ class EpcPipeline:
             ]
         )
 
+from celery import shared_task
 class ImagePipeline:
     def __init__(self) -> None:
         self.images = []
@@ -483,33 +487,16 @@ class ImagePipeline:
         except Exception as e:
             print(e)
             self.images.clear()
+
     
     def insert(self):
         primary_keys = [image for image in self.images]
         images = Image.objects.filter(pk__in=primary_keys)
-        for image in images:
-            image.image_file = self.images[image.pk]["image_file"]
-            image.image_scraped = True
-        # for image in self.images:
-        #     image_property = Image.objects.get(pk=image["pk"])
-        #     image_property.image_scraped = True
-        #     updates.append(image_property)         
         
-        Image.objects.bulk_update(
-            images,
-            ["image_file", "image_scraped"]
-        )
-        
-        # Images.objects.bulk_create(
-        #     [Images(
-        #         composite_id = image["composite_id"],
-        #         image_file = SimpleUploadedFile(f"{image['composite_id']}.png", ContentFile(image["image_binary"]).read(), content_type="image/png")
-        #     ) for image in self.images]
-        # )
-        
-        # ImageProperty.objects.bulk_update(
-        #     updates,
-        #     [
-        #         "image_scraped"
-        #     ]
-        # )
+        for instance in images:
+            image = PilImage.open(BytesIO(self.images[instance.pk]["image_file"]))
+            image_io = BytesIO()
+            image.save(image_io, format="png")
+            instance.image_file.save(f'{instance.pk}.png', ContentFile(image_io.getvalue()))
+            instance.image_scraped = True
+            instance.save()    

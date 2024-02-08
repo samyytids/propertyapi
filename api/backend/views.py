@@ -6,7 +6,6 @@ from backend.serializers import PropertySerializer
 from backend.models import *
 import json
 
-
 def get_filters(input_dict: dict, prefix="") -> dict:
     filters = {}
     for key, value in input_dict.items():
@@ -29,15 +28,18 @@ class FilterView(APIView):
         sample_size = int(request.GET.get("sample_size"))
         parameters = json.loads(parameters)
         property_filter_inputs: dict = parameters.get("property")
+        property_exclude_inputs: dict = parameters.get("excludes")
         property_filters = get_filters(property_filter_inputs)
-        properties = Property.objects.filter(**property_filters)
+        property_excludes = get_filters(property_exclude_inputs)
+        print(property_filters) 
+        properties = Property.objects.filter(**property_filters).exclude(**property_excludes)
         if sample_size:
             properties = properties[0:sample_size]
         paginator = self.pagination_class()
         paginator.page_size = page_size
         paginator.page_query_param = "page"
         p = paginator.paginate_queryset(queryset=properties, request=request)
-        serializer = PropertySerializer(p, many=True, fields=parameters["fields"])
+        serializer = PropertySerializer(p, many=True, fields=parameters["fields"], context={"key_features": {"word_count__lte": 4}})
         
         if p:
             return paginator.get_paginated_response(serializer.data)

@@ -89,7 +89,6 @@ class RightmoveParser:
                 "agent_affiliation_table" : agent_affiliation_table,
                 "price_table" : price_table,
                 "key_feature_table" : key_feature_table,
-                "key_feature_table" : key_feature_table,
                 "status_table" : status_table,
                 "image_table" : image_table,
                 "floorplan_table" : floorplan_table,
@@ -606,13 +605,14 @@ class RightmoveParser:
     @staticmethod
     def key_feature_table_data(key_feature_data: list[str], id: str) -> list[dict]:
         result = []
+
         for feature in key_feature_data:
             result_data = {
                 "property_id" : id,
                 "feature" : feature.lower(),
+                "word_count" : len(feature.split(" ")),
             }
             result.append(result_data)
-        
         return result
     
     @staticmethod

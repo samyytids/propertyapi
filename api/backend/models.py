@@ -175,7 +175,7 @@ class AgentAffiliation(models.Model):
         unique_together = [["affiliation_id", "agent_id"]]
 
 class Price(models.Model):
-    property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="prices")
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="price_history")
     price = models.IntegerField()
     price_qualifier = models.CharField(max_length=100, null=True)
     original_price = models.BooleanField()
@@ -186,8 +186,9 @@ class Price(models.Model):
         unique_together = [["price", "property_id"]]
         
 class KeyFeature(models.Model):
-    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="key_features")
     feature = models.TextField()
+    word_count = models.IntegerField()
     
     class Meta:
         db_table = "key_feature"
@@ -203,7 +204,7 @@ class Status(models.Model):
         unique_together = [["stc", "property_id"]]
         
 class Image(models.Model):
-    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="images")
     image_url = models.URLField(max_length=300)
     image_caption = models.CharField(max_length=255, null=True)
     image_file = models.ImageField(upload_to="image/", null=True)
@@ -214,7 +215,7 @@ class Image(models.Model):
         unique_together = [["property_id", "image_url"]]
         
 class Floorplan(models.Model):
-    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="floorplans")
     floorplan_url = models.URLField(max_length=300)
     floorplan_caption = models.CharField(max_length=255, null=True)
     floorplan_file = models.ImageField(upload_to="floorplan/", null=True)
@@ -237,7 +238,7 @@ class Room(models.Model):
         unique_together = [["property_id", "room_name", "room_description"]]
 
 class PremiumListing(models.Model):
-    property_id = models.ForeignKey(Property, on_delete=models.CASCADE)
+    property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="premium_listing_history")
     featured_property = models.BooleanField()
     premium_listing = models.BooleanField()
     listing_date = models.DateField()

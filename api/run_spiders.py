@@ -105,9 +105,11 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
     
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
+        crawlers = [RightmoveSpider, ImageSpider, EpcSpider]
     else:
-        crawlers = [ImageSpider]
+        # crawlers = [ImageSpider]
+        print(len(Property.objects.filter(key_features__word_count__lte=1)))
+        
     process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
         "HTTPCACHE_ENABLED":False,
