@@ -246,7 +246,6 @@ class PropertySerializer(DynamicFieldsModelSerializer, serializers.ModelSerializ
         filter_condition = self.context.get("key_features")
         filter_condition["property_id"] = instance
         key_features = KeyFeature.objects.filter(**filter_condition)
-        print(len(key_features))
         return KeyFeatureSerializer(key_features, many=True).data
         
     
