@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from backend.serializers import PropertySerializer
 from backend.models import *
-import random
 import json
 
 def get_filters(input_dict: dict, prefix="") -> dict:
@@ -35,7 +34,7 @@ class FilterView(APIView):
         properties = Property.objects.filter(**property_filters).exclude(**property_excludes)
         
         if sample_size == page_size: 
-            properties = random.sample(properties, sample_size)
+            properties = properties.order_by("?")[0:sample_size]
         if sample_size:
             properties = properties[0:sample_size]
         
