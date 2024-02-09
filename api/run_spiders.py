@@ -105,7 +105,7 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
     
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        crawlers = [RightmoveSpider, ImageSpider, EpcSpider]
+        crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
     else:
         # crawlers = [ImageSpider]
         kf = KeyFeature.objects.all()
