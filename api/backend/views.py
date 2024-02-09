@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from backend.serializers import PropertySerializer
 from backend.models import *
+import random
 import json
 
 def get_filters(input_dict: dict, prefix="") -> dict:
@@ -31,10 +32,13 @@ class FilterView(APIView):
         property_exclude_inputs: dict = parameters.get("excludes")
         property_filters = get_filters(property_filter_inputs)
         property_excludes = get_filters(property_exclude_inputs)
-        print(property_filters) 
         properties = Property.objects.filter(**property_filters).exclude(**property_excludes)
+        
+        if sample_size == page_size: 
+            properties = random.sample(properties, sample_size)
         if sample_size:
             properties = properties[0:sample_size]
+        
         paginator = self.pagination_class()
         paginator.page_size = page_size
         paginator.page_query_param = "page"
