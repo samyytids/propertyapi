@@ -107,12 +107,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
     else:
-        # crawlers = [ImageSpider]
-        kf = KeyFeature.objects.all()
-        for idx, item in enumerate(kf):
-            item.word_count = len(item.feature.split(" "))
-            item.save()
-            print(idx, "/", len(kf))
+        crawlers = [ImageSpider]
     
         
     process = CrawlerProcess(settings={
