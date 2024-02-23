@@ -494,11 +494,10 @@ class ImagePipeline:
 
         for instance in images:
             image = PilImage.open(BytesIO(self.images[instance.pk]["image_file"]))
-            image_io = BytesIO()
-            image.save(image_io, format="png")
-            instance.image_file.save(f'{instance.pk}.png', ContentFile(image_io.getvalue()))
+            width, height = image.size
+            instance.image_binary = self.images[instance.pk]["image_file"]
             instance.image_scraped = True
-            instance.image_height = instance.image_file.height
-            instance.image_width = instance.image_file.width
+            instance.image_width, instance.image_height = width, height
+            instance.image_dimension = width * height
 
-        Image.objects.bulk_update(images, ['image_file', 'image_scraped', "image_height", "image_width", "image_dimension"])
+        Image.objects.bulk_update(images, ['image_binary', 'image_scraped', "image_height", "image_width", "image_dimension"])

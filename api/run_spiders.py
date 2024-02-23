@@ -141,6 +141,16 @@ if __name__ == "__main__":
             print(arg)
         elif arg == "test": 
             test()
+        elif arg == "list":
+            print(
+                "ever_premium",
+                "total_pixels",
+                "station_distances",
+                "key_features",
+                "test",
+                "or nothing to do basic scrape",
+                "anything else will scrape images"
+            )
         else:
             crawlers = [ImageSpider]
             process = CrawlerProcess(settings={

@@ -35,14 +35,6 @@ def total_pixels():
                 "image_dimension": [],
             }
 
-        # Update image attributes
-        if not image.image_height:
-            image.image_height = image.image_file.height
-        if not image.image_width:
-            image.image_width = image.image_file.width
-        if not image.image_dimension:
-            image.image_dimension = image.image_height * image.image_width
-
         # Append image attributes to the dictionary
         needed_dict[image.property_id.property_id]["image_dimension"].append(image.image_dimension)
         needed_dict[image.property_id.property_id]["image_height"].append(image.image_height)
@@ -228,6 +220,7 @@ def ever_premium():
             batch_size=5000
         )
 
+
     
 def test():
     # elements = KeyFeature.objects.all().values_list("feature", flat=True)
@@ -247,4 +240,14 @@ def test():
     
     # for key, value in sorted_hashmap[:cap]:
     #     print(f"Key: {key}, Count: {value}")
-    print(Image.objects.get(property_id__property_id = "100010531"))
+    # images = [image.image_binary for image in Image.objects.filter(property_id__property_id = "100010531")]
+    # for idx, image in enumerate(images):
+    #     file_path = './' + f"{idx}.png"  # Update the path as needed
+
+    #     # Write the binary data to a file
+    #     with open(file_path, 'wb') as f:
+    #         f.write(image)
+
+    #     # Print a message indicating the file has been saved
+    #     print(f"Image file saved as: {file_path}")
+    ...
