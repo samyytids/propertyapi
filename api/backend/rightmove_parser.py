@@ -279,10 +279,12 @@ class RightmoveParser:
         share_description = self.strip_tags(share_description) if share_description else None
         page_title = self.strip_tags(page_title) if page_title else None
         short_description = self.strip_tags(short_description) if short_description else None
+        description_length = len(description)
         
         result = {
             "property_id" : id,
             "description" : description,
+            "description_length" : description_length,
             "disclaimer" : disclaimer,
             "auction_fees_disclaimer" : auction_fees_disclaimer,
             "guide_price_disclaimer" : guide_price_disclaimer,
@@ -460,7 +462,7 @@ class RightmoveParser:
             result.append(result_data)
         
         return result
-    
+        
     def estate_agent_table_data(self, customer_data: dict, analytics_branch: dict) -> dict:
         agent_type = analytics_branch.get("agentType")
         agent_url = f'https://www.rightmove.co.uk{customer_data.get("customerProfileUrl")}'

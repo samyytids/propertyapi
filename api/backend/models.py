@@ -45,6 +45,9 @@ class PropertyData(models.Model):
     agent = models.ForeignKey("EstateAgent", on_delete=models.CASCADE)
     business_type = models.ForeignKey("BusinessType", on_delete=models.CASCADE, null=True)
     letting_info = models.OneToOneField("LettingInfo", on_delete=models.CASCADE, null=True)
+    total_pixels = models.OneToOneField("ImageDimensions", on_delete=models.CASCADE, null=True)
+    avg_station_distance = models.OneToOneField("AverageDistanceFromStation", on_delete=models.CASCADE, null=True)
+    ever_premium = models.OneToOneField("EverPremium", on_delete=models.CASCADE, null=True)
     first_scraped = models.DateField()
     class Meta:
         db_table = "property_data"
@@ -52,6 +55,7 @@ class PropertyData(models.Model):
 class Text(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
     description = models.TextField(null=True)
+    description_length = models.IntegerField(null=True)
     disclaimer = models.TextField()
     auction_fees_disclaimer = models.TextField(null=True)
     guide_price_disclaimer = models.TextField(null=True)
@@ -148,6 +152,7 @@ class EstateAgent(models.Model):
     agent_url_type = models.CharField(max_length=255)
     agent_name = models.CharField(max_length=255)
     branch_name = models.CharField(max_length=255, null=True)
+    agent_full_name = models.CharField(max_length=255, null=True)
     agent_description = models.TextField()
     developer = models.BooleanField()
     affiliation = models.ManyToManyField(
@@ -159,6 +164,16 @@ class EstateAgent(models.Model):
     class Meta:
         db_table = "estate_agent"
         unique_together = [["agent_name", "branch_name"]]
+        
+    def save(self, *args, **kwargs):
+        # Calculate image dimension
+        if self.agent_name is not None and self.branch_name is not None:
+            self.agent_full_name = f"{self.agent_name} {self.branch_name}"
+        else:
+            self.agent_full_name = self.agent_name
+
+        # Call the parent class's save method
+        super().save(*args, **kwargs)
         
 class Affiliation(models.Model):
     affiliation_name = models.CharField(max_length=255, unique=True)
@@ -207,12 +222,25 @@ class Image(models.Model):
     property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="images")
     image_url = models.URLField(max_length=300)
     image_caption = models.CharField(max_length=255, null=True)
-    image_file = models.ImageField(upload_to="image/", null=True)
+    image_file = models.ImageField(upload_to="image/", height_field="image_height", width_field="image_width", null=True)
+    image_height = models.IntegerField(blank=True, null=True)
+    image_width = models.IntegerField(blank=True, null=True)
+    image_dimension = models.IntegerField(blank=True, null=True)
     image_scraped = models.BooleanField(default=False)
     
     class Meta:
         db_table = "image"
         unique_together = [["property_id", "image_url"]]
+    
+    def save(self, *args, **kwargs):
+        # Calculate image dimension
+        if self.image_height is not None and self.image_width is not None:
+            self.image_dimension = self.image_height * self.image_width
+        else:
+            self.image_dimension = None
+
+        # Call the parent class's save method
+        super().save(*args, **kwargs)
         
 class Floorplan(models.Model):
     property_id = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="floorplans")
@@ -253,7 +281,7 @@ class BusinessType(models.Model):
     sector = models.CharField(max_length=255, null=True)
     
     class Meta:
-        db_table = "business type"
+        db_table = "business_type"
         
 class LettingInfo(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
@@ -264,4 +292,30 @@ class LettingInfo(models.Model):
     furnishing_type = models.CharField(max_length=100, null=True)
     
     class Meta:
-        db_table = "letting info"
+        db_table = "letting_info"
+        
+class ImageDimensions(models.Model):
+    property_id = models.CharField(max_length=15, null=True)
+    total_pixels = models.IntegerField()
+    avg_image_height = models.IntegerField(null=True)
+    avg_image_width = models.IntegerField(null=True)
+    num_images = models.IntegerField(null=True)
+    
+    class Meta:
+        db_table = "image_dimensions"
+        
+class AverageDistanceFromStation(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    avg_distance = models.DecimalField(max_digits=50, decimal_places=10, null=True)
+    number_of_stations = models.IntegerField(null=True)
+    
+    class Meta: 
+        db_table = "average_station_distance"
+        
+class EverPremium(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    ever_premium = models.IntegerField(null=True)
+    ever_featured = models.IntegerField(null=True)
+    
+    class Meta: 
+        db_table = "ever_premium"

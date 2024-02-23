@@ -17,6 +17,9 @@ from scrapy.crawler import CrawlerProcess
 from django.db.models import Q
 from pre_scrape_epcs import pre_scrape_epcs
 from django.db.models.base import ModelState
+from django.db.models import Q, Avg, Count, ExpressionWrapper, Sum, F, IntegerField, Max
+from django.db.models.functions import Length, Cast
+from functions import total_pixels, station_distances, ever_premium, test
 
 process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
@@ -102,20 +105,50 @@ def crawl_sequentially(process: CrawlerProcess, crawlers: list):
 
     if len(crawlers) > 1:
         deferred.addCallback(lambda _: crawl_sequentially(process, crawlers[1:]))
-    
+
+
+def populate_1_to_1_alternatives():
+    # total_pixels()
+    # station_distances()
+    # ever_premium()
+    ...
+
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
+    system_args = sys.argv
+    system_args.pop(0)
+    print(system_args)
+    
+    if len(system_args) == 0:
         crawlers = [SitemapSpider, RightmoveSpider, ImageSpider, EpcSpider]
-    else:
-        crawlers = [ImageSpider]
-    
+        process = CrawlerProcess(settings={
+            "LOG_LEVEL":"INFO",
+            "HTTPCACHE_ENABLED":False,
+            "HTTPERROR_ALLOWED_CODES": [410,404],
+            "CONCURRENT_REQUESTS" : 16,
+        })
         
-    process = CrawlerProcess(settings={
-        "LOG_LEVEL":"INFO",
-        "HTTPCACHE_ENABLED":False,
-        "HTTPERROR_ALLOWED_CODES": [410,404],
-        "CONCURRENT_REQUESTS" : 16,
-    })
+        crawl_sequentially(process=process, crawlers=crawlers)
+        process.start()
     
-    crawl_sequentially(process=process, crawlers=crawlers)
-    process.start()
+    for arg in system_args:
+        if arg == "ever_premium":
+            ever_premium()
+        elif arg == "total_pixels":
+            total_pixels()
+        elif arg == "station_distances":
+            station_distances()
+        elif arg == "key_features":
+            print(arg)
+        elif arg == "test": 
+            test()
+        else:
+            crawlers = [ImageSpider]
+            process = CrawlerProcess(settings={
+                "LOG_LEVEL":"INFO",
+                "HTTPCACHE_ENABLED":False,
+                "HTTPERROR_ALLOWED_CODES": [410,404],
+                "CONCURRENT_REQUESTS" : 16,
+            })
+            
+            crawl_sequentially(process=process, crawlers=crawlers)
+            process.start()    

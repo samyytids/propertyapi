@@ -2,9 +2,33 @@ from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import status
-from backend.serializers import PropertySerializer
+from django.contrib.postgres.aggregates import ArrayAgg
+from django.db.models import Q, Avg, Count, ExpressionWrapper, Sum, F, IntegerField, Max
+from django.db.models.functions import Length, Cast
 from backend.models import *
 import json
+import time 
+
+FUNCTIONS = {
+    "ArrayAgg" : ArrayAgg,
+    "Avg" : Avg,
+    "Count" : Count, 
+    "Sum" : Sum,
+    "Max" : Max,
+}
+
+FIELDS = {
+    "IntegerField" : IntegerField()
+}
+
+def get_fields(input_dict: dict, prefix="") -> list:
+    fields = []
+    for key, value in input_dict.items():
+        if key != "property": 
+            fields.extend([f"{key}__{field}" for field in value])
+        else:
+            fields.extend([field for field in value])
+    return fields
 
 def get_filters(input_dict: dict, prefix="") -> dict:
     filters = {}
@@ -17,34 +41,71 @@ def get_filters(input_dict: dict, prefix="") -> dict:
             filters[current_key] = value
     return filters
 
+def get_annotated(input_dict: dict, prefix="") -> dict:
+    annotated = {}
+    for key, value in input_dict.items():
+        value["args"]["filter"] = Q(**value["filter"])
+        
+        if "Cast" in value:
+            annotated[key] = FUNCTIONS[value["function"]](
+                Cast(value["field"], output_field=FIELDS[value["Cast"]]),
+                **value["args"],
+            )
+        else:
+            annotated[key] = FUNCTIONS[value["function"]](
+                value["field"],
+                **value["args"],
+            )
+            
+    return annotated
+
 class YourModelPagination(PageNumberPagination):
     page_size = 100 
-
+    
 class FilterView(APIView):
     pagination_class = YourModelPagination
     def get(self, request, *args, **kwargs):
-        parameters = request.GET.get("params")
-        page_size = int(request.GET.get("page_size"))
-        sample_size = int(request.GET.get("sample_size"))
-        parameters = json.loads(parameters)
-        property_filter_inputs: dict = parameters.get("property")
-        property_exclude_inputs: dict = parameters.get("excludes")
-        property_filters = get_filters(property_filter_inputs)
-        property_excludes = get_filters(property_exclude_inputs)
-        properties = Property.objects.filter(**property_filters).exclude(**property_excludes)
+        try:
+            parameters = request.GET.get("params")
+            page_size = int(request.GET.get("page_size"))
+            sample_size = int(request.GET.get("sample_size"))
+            parameters = json.loads(parameters)
+            
+            annotated_fields = parameters["fields"]["annotated"]
+            annotated_fields = get_annotated(annotated_fields)
+            
+            direct_fields = parameters["fields"]["direct"]
+            direct_fields = get_fields(direct_fields)
+            
+            filters = parameters["filters"]
+            
+            select_related = parameters["select_related"]
+            prefetch_related = parameters["prefetch_related"]
+            
+            start = time.time()
+            properties = Property.objects\
+                .select_related(*select_related)\
+                .prefetch_related(*prefetch_related)\
+                .values(*direct_fields)\
+                .annotate(
+                        **annotated_fields
+                        )\
+                .filter(
+                        **filters
+                    )
+            
+            if sample_size:
+                properties = properties.order_by("?")[0:sample_size]
+            
+            paginator = self.pagination_class()
+            paginator.page_size = page_size
+            paginator.page_query_param = "page"
+            p = paginator.paginate_queryset(queryset=properties, request=request)
+            return paginator.get_paginated_response(p)
+                
+        except Exception as e:
+            print(e)
         
-        if sample_size == page_size: 
-            properties = properties.order_by("?")[0:sample_size]
-        if sample_size:
-            properties = properties[0:sample_size]
+        print("time take: ", time.time() - start)
         
-        paginator = self.pagination_class()
-        paginator.page_size = page_size
-        paginator.page_query_param = "page"
-        p = paginator.paginate_queryset(queryset=properties, request=request)
-        serializer = PropertySerializer(p, many=True, fields=parameters["fields"], context={"key_features": {"word_count__lte": 4}})
-        
-        if p:
-            return paginator.get_paginated_response(serializer.data)
-        
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(list(p), status=status.HTTP_200_OK)

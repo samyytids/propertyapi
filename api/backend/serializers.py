@@ -171,15 +171,15 @@ class PropertyDataSerializer(DynamicFieldsModelSerializer, serializers.ModelSeri
         ]
 
 class PropertySerializer(DynamicFieldsModelSerializer, serializers.ModelSerializer):
-    price_history = PriceSerializer(many=True, read_only=True)
-    premium_listing_history = PremiumListingSerializer(many=True, read_only=True)
-    premium_listing = serializers.SerializerMethodField()
-    featured_property = serializers.SerializerMethodField()
-    pixel_count = serializers.SerializerMethodField()
-    key_features = serializers.SerializerMethodField()
-    images = ImageSerializer(many=True, read_only=True)
-    floorplans = FloorplanSerializer(many=True, read_only=True)
-    property_data = PropertyDataSerializer()
+    # price_history = PriceSerializer(many=True, read_only=True)
+    # premium_listing_history = PremiumListingSerializer(many=True, read_only=True)
+    # premium_listing = serializers.SerializerMethodField()
+    # featured_property = serializers.SerializerMethodField()
+    # pixel_count = serializers.SerializerMethodField()
+    # key_features = serializers.SerializerMethodField()
+    # images = ImageSerializer(many=True, read_only=True)
+    # floorplans = FloorplanSerializer(many=True, read_only=True)
+    # property_data = PropertyDataSerializer()
    
     class Meta:
         model = Property
@@ -193,15 +193,23 @@ class PropertySerializer(DynamicFieldsModelSerializer, serializers.ModelSerializ
             "bad_data",
             "removed",
             "stc",
-            "property_data",
-            "price_history",
-            "premium_listing",
-            "featured_property",
-            "premium_listing_history",
-            "key_features",
-            "pixel_count",
-            "images",
-            "floorplans",
+            # "property_id",
+            # "property_url",
+            # "scraped_before",
+            # "un_published",
+            # "archived",
+            # "bad_data",
+            # "removed",
+            # "stc",
+            # "property_data",
+            # "price_history",
+            # "premium_listing",
+            # "featured_property",
+            # "premium_listing_history",
+            # "key_features",
+            # "pixel_count",
+            # "images",
+            # "floorplans",
         ]
         
     def __init__(self, *args, **kwargs):
@@ -228,25 +236,25 @@ class PropertySerializer(DynamicFieldsModelSerializer, serializers.ModelSerializ
         except Exception as e:
             print(e)
     
-    def get_premium_listing(self, obj: Property):
-        return PremiumListing.objects.filter(property_id=obj.property_id, premium_listing=True).exists()
+    # def get_premium_listing(self, obj: Property):
+    #     return PremiumListing.objects.filter(property_id=obj.property_id, premium_listing=True).exists()
 
-    def get_featured_property(self, obj: Property):
-        return PremiumListing.objects.filter(property_id=obj.property_id, featured_property=True).exists()
+    # def get_featured_property(self, obj: Property):
+    #     return PremiumListing.objects.filter(property_id=obj.property_id, featured_property=True).exists()
     
-    def get_pixel_count(self, obj: Property): 
-        pixel_count = 0
-        image: Image
+    # def get_pixel_count(self, obj: Property): 
+    #     pixel_count = 0
+    #     image: Image
 
-        for image in Image.objects.filter(property_id=obj):
-            pixel_count += image.image_file.height * image.image_file.width
-        return pixel_count
+    #     for image in Image.objects.filter(property_id=obj):
+    #         pixel_count += image.image_file.height * image.image_file.width
+    #     return pixel_count
 
-    def get_key_features(self, instance: Property):
-        filter_condition = self.context.get("key_features")
-        filter_condition["property_id"] = instance
-        key_features = KeyFeature.objects.filter(**filter_condition)
-        return KeyFeatureSerializer(key_features, many=True).data
+    # def get_key_features(self, instance: Property):
+    #     filter_condition = self.context.get("key_features")
+    #     filter_condition["property_id"] = instance
+    #     key_features = KeyFeature.objects.filter(**filter_condition)
+    #     return KeyFeatureSerializer(key_features, many=True).data
         
     
         
