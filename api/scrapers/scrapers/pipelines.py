@@ -487,10 +487,11 @@ class ImagePipeline:
             print(e)
             self.images.clear()
 
+    @staticmethod
     def is_valid_image(image_bytes_io):
         try:
             # Attempt to open the image using PIL
-            img = Image.open(image_bytes_io)
+            img = PilImage.open(image_bytes_io)
             # Check if the image format is supported
             img.verify()
             return True
