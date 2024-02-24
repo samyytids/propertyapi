@@ -487,17 +487,37 @@ class ImagePipeline:
             print(e)
             self.images.clear()
 
-    
+    def is_valid_image(image_bytes_io):
+        try:
+            # Attempt to open the image using PIL
+            img = Image.open(image_bytes_io)
+            # Check if the image format is supported
+            img.verify()
+            return True
+        except (IOError, SyntaxError) as e:
+            # IOError: Unable to open file (not an image, or corrupted)
+            # SyntaxError: Unable to detect image file format
+            return False
+        
     def insert(self):
         primary_keys = [image for image in self.images]
         images = Image.objects.filter(pk__in=primary_keys)
 
         for instance in images:
-            image = PilImage.open(BytesIO(self.images[instance.pk]["image_file"]))
-            width, height = image.size
-            instance.image_binary = self.images[instance.pk]["image_file"]
-            instance.image_scraped = True
-            instance.image_width, instance.image_height = width, height
-            instance.image_dimension = width * height
+            image_data = self.images[instance.pk]["image_file"]
+            
+            # Check if the image data is valid
+            if self.is_valid_image(BytesIO(image_data)):
+                # If the image is valid, proceed with processing
+                image = PilImage.open(BytesIO(image_data))
+                width, height = image.size
+                instance.image_binary = image_data
+                instance.image_scraped = True
+                instance.image_width, instance.image_height = width, height
+                instance.image_dimension = width * height
+            else:
+                # If the image is invalid, only update image_scraped
+                instance.image_scraped = True
 
+        # Update the images in bulk
         Image.objects.bulk_update(images, ['image_binary', 'image_scraped', "image_height", "image_width", "image_dimension"])
