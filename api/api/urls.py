@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from backend.views import FilterView
+from backend.views import FilterView, KeyFeatureView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('filter_view/', FilterView.as_view(), name="filter_view"),
+    path('key_feature/', KeyFeatureView.as_view(), name="key_feature"),
 ]
