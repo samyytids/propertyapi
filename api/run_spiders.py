@@ -129,7 +129,7 @@ if __name__ == "__main__":
         
         crawl_sequentially(process=process, crawlers=crawlers)
         process.start()
-    
+    scrape = False
     for arg in system_args:
         if arg == "ever_premium":
             ever_premium()
@@ -141,6 +141,9 @@ if __name__ == "__main__":
             print(arg)
         elif arg == "test": 
             test()
+        elif arg == "property_data": 
+            crawlers = [RightmoveSpider]
+            scrape = True
         elif arg == "list":
             print(
                 "ever_premium",
@@ -148,17 +151,21 @@ if __name__ == "__main__":
                 "station_distances",
                 "key_features",
                 "test",
+                "property_data",
                 "or nothing to do basic scrape",
                 "anything else will scrape images"
             )
         else:
             crawlers = [ImageSpider]
-            process = CrawlerProcess(settings={
-                "LOG_LEVEL":"INFO",
-                "HTTPCACHE_ENABLED":False,
-                "HTTPERROR_ALLOWED_CODES": [410,404],
-                "CONCURRENT_REQUESTS" : 16,
-            })
-            
-            crawl_sequentially(process=process, crawlers=crawlers)
-            process.start()    
+            scrape = True
+    
+    if scrape:
+        process = CrawlerProcess(settings={
+            "LOG_LEVEL":"INFO",
+            "HTTPCACHE_ENABLED":False,
+            "HTTPERROR_ALLOWED_CODES": [410,404],
+            "CONCURRENT_REQUESTS" : 16,
+        })
+        
+        crawl_sequentially(process=process, crawlers=crawlers)
+        process.start()    

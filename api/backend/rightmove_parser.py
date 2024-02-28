@@ -33,19 +33,29 @@ class RightmoveParser:
             property_data = self.get_property_data_sections(property_data)
             analytics_info = self.get_analytics_info_sections(analytics_info)
             
+            
             property_table = self.property_table_data(property_data["published_archived"], analytics_info, id)
+            
             property_data_table = self.property_data_table_data(property_data, analytics_info, id)
+            
             text_elements_table  = self.text_elements_table_data(property_data.get("text"), id)
+            
             tax_table = self.tax_table_data(property_data.get("tax"), id)
+            
             ownership_table = self.ownership_table_data(property_data.get("shared_ownership"), id)
             if property_data.get("epc_graphs"):
                 epc_table = self.epc_table_data(property_data.get("epc_graphs"), id)
             else:
                 epc_table = []
+            
             location_table = self.location_table_data(property_data.get("location"), property_data.get("address"), id)
+            
             layout_table = self.layout_table_data(property_data.get("bedrooms"), property_data.get("bathrooms"), property_data.get("size"), property_data_table.get("property_sub_type"), property_data_table.get("listing_type"), id)
+            
             station_table = self.station_table_data(property_data.get("nearest_stations"))
+            
             station_distance_table = self.station_distance_table_data(property_data.get("nearest_stations"), id)
+            
             estate_agent_table = self.estate_agent_table_data(property_data.get("estate_agent"), analytics_info.get("analytics_branch"))
             if property_data.get("industry_affiliation"):
                 affiliation_table = self.affiliation_table_data(property_data.get("industry_affiliation"))
@@ -54,18 +64,26 @@ class RightmoveParser:
                 affiliation_table = None
                 agent_affiliation_table = None
                 
+            
             price_table = self.price_table_data(property_data.get("prices"), property_data.get("listing_history"), property_data_table, id)
             if property_data.get("key_features"):
                 key_feature_table = self.key_feature_table_data(property_data.get("key_features"), id)
             else:
                 key_feature_table = []
+            
             status_table = self.status_table_data(property_data_table, id)
+            
             image_table = self.image_table_data(property_data.get("images"), id)
+            
             floorplan_table = self.floorplan_table_data(property_data.get("floorplans"), id)
+            
             room_table = self.room_table_data(property_data.get("rooms"), id)
+            
             premium_listing_table = self.premium_listing_table_data(property_data.get("misc_info"), id)
+            
             business_type_table = self.business_type_table_data(property_data.get("info_reel"), id)
             if property_data.get("lettings"):
+                
                 lettings_table = self.lettings_table_data(property_data.get("lettings"), id)
             else:
                 lettings_table = []
@@ -545,10 +563,10 @@ class RightmoveParser:
             elif "today" in history:
                 price_date = datetime.now().date()
             else:
+                
                 price_date = datetime.strptime("".join(history.split(" ")[-1].split("/")[::-1]), "%Y%m%d").date()
         else:
             price_date = property_data_table.get("added_date")
-        
         result = {
             "property_id": id,
             "price" : price,
@@ -632,7 +650,6 @@ class RightmoveParser:
                 "stc" : False,
                 "status_date" : property_table.get("added_date")
             }
-            
         return result
     
     @staticmethod
@@ -734,8 +751,11 @@ class RightmoveParser:
         if let_available_date:
             if let_available_date == "Now":
                 let_available_date = datetime.today().date()
+            elif let_available_date[0:3] == "Ask":
+                let_available_date = None
             else:
-                let_available_date = datetime.strptime("".join(lettings.get("letAvailableDate").split("/")[::-1]), "%Y%m%d").date()
+                let_available_date = datetime.strptime("".join(let_available_date.split("/")[::-1]), "%Y%m%d").date()
+        
         result = {
             "property_id" : id,
             "let_available_date" : let_available_date,

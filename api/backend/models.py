@@ -296,7 +296,7 @@ class LettingInfo(models.Model):
         db_table = "letting_info"
         
 class ImageDimensions(models.Model):
-    property_id = models.CharField(max_length=15, null=True)
+    property_id = models.CharField(max_length=15, null=True, unique=True)
     total_pixels = models.IntegerField()
     avg_image_height = models.IntegerField(null=True)
     avg_image_width = models.IntegerField(null=True)
