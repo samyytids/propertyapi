@@ -133,85 +133,6 @@ def station_distances():
         )
 
 def ever_premium():
-    chunk_size = 10_000
-    elements = PremiumListing.objects.all()
-    already_created = set(EverPremium.objects.all().values_list("property_id", flat=True))
-    length = len(elements)
-    
-    create_ever_premium = {}
-    update_ever_premium = {}
-    for idx, element in enumerate(elements):
-        if element.property_id.property_id in already_created or element.property_id.property_id in update_ever_premium:
-            needed_dict = update_ever_premium
-        else:
-            needed_dict = create_ever_premium
-        
-        # Check if the property_id is already in the dictionary
-        if element.property_id.property_id not in needed_dict:
-            needed_dict[element.property_id.property_id] = {
-                "ever_premium" : [],
-                "ever_featured" : [],
-            }
-
-        # Append element attributes to the dictionary
-        needed_dict[element.property_id.property_id]["ever_premium"].append(element.premium_listing)
-        needed_dict[element.property_id.property_id]["ever_featured"].append(element.featured_property)
-
-        if (idx + 1) % 10_000 == 0:
-            print(f"{idx+1}/{length} ever_premium")
-    
-    property_ids = list(update_ever_premium.keys())
-    chunks = [property_ids[i:i + chunk_size] for i in range(0, len(property_ids), chunk_size)]
-    
-    for chunk in chunks:
-        ever_premium_to_update = EverPremium.objects.filter(property_id__in=chunk)
-        
-        for ever_premium in ever_premium_to_update:
-            update_data = update_ever_premium.get(ever_premium.property_id)
-            ever_premium.ever_featured = max(update_data.get("ever_featured"))
-            ever_premium.ever_premium = max(update_data.get("ever_premium"))
-        
-        EverPremium.objects.bulk_update(
-            ever_premium_to_update,
-            [
-                "ever_featured",
-                "ever_premium",
-            ],
-            batch_size=5000
-        )
-    
-    ever_premiums_to_create = [
-        EverPremium(
-            property_id = property_id,
-            ever_premium = max(values["ever_premium"]),
-            ever_featured = max(values["ever_featured"]),
-        ) for property_id, values in create_ever_premium.items()
-    ]
-    
-    EverPremium.objects.bulk_create(
-        ever_premiums_to_create,
-        batch_size=5000,
-        ignore_conflicts=True
-    )
-    
-    
-    property_ids = list(create_ever_premium.keys())
-    chunks = [property_ids[i:i + chunk_size] for i in range(0, len(property_ids), chunk_size)]
-
-    for chunk in chunks:
-        properties_to_update = PropertyData.objects.filter(property_id__in=chunk)
-        
-        for property_data in properties_to_update:
-            ever_premium_obj = EverPremium.objects.get(property_id = property_data.property_id)
-            property_data.ever_premium = ever_premium_obj
-
-        PropertyData.objects.bulk_update(
-            properties_to_update,
-            ["ever_premium"],
-            batch_size=5000
-        )
-    
-def test():
     ids = list(divide_chunks(PremiumListing.objects.all().values_list("property_id", flat=True).distinct()))
     for idx, chunk in enumerate(ids):
         print(f"Ever premium chunk: {idx+1}/{len(ids)} begun")
@@ -283,3 +204,6 @@ def test():
             ["ever_premium"],
             batch_size=5000
         )
+    
+def test():
+    ...
