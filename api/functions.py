@@ -13,41 +13,40 @@ from collections import defaultdict
 from operator import itemgetter
 from random import sample
 
+def divide_chunks(l, n=10_000): 
+    # looping till length l 
+    for i in range(0, len(l), n):  
+        yield l[i:i + n] 
+
 def total_pixels():
-    chunk_size = 10_000
-    images = Image.objects.filter(image_scraped=True)
-    already_created = set(ImageDimensions.objects.all().values_list("property_id", flat=True))
-    length = len(images)
+    ids = list(divide_chunks(Image.objects.filter(image_scraped=True, image_dimension__isnull=False).values_list("property_id", flat=True).distinct()))
+    for idx, chunk in enumerate(ids):
+        print(f"Image chunk: {idx+1}/{len(ids)} begun")
+        images = Image.objects.filter(property_id__in = chunk, image_scraped=True, image_dimension__isnull=False)
+        already_created = ImageDimensions.objects.all().values_list("property_id", flat=True).distinct()
+        create_images = {}
+        update_images = {}
+        for idx, image in enumerate(images):
+            if image.property_id.property_id in already_created or image.property_id.property_id in update_images:
+                needed_dict = update_images
+            else:
+                needed_dict = create_images
+            
+            # Check if the property_id is already in the dictionary
+            if image.property_id.property_id not in needed_dict:
+                needed_dict[image.property_id.property_id] = {
+                    "image_height": [],
+                    "image_width": [],
+                    "image_dimension": [],
+                }
 
-    create_images = {}
-    update_images = {}
-    for idx, image in enumerate(images):
-        if image.property_id.property_id in already_created or image.property_id.property_id in update_images:
-            needed_dict = update_images
-        else:
-            needed_dict = create_images
-        
-        # Check if the property_id is already in the dictionary
-        if image.property_id.property_id not in needed_dict:
-            needed_dict[image.property_id.property_id] = {
-                "image_height": [],
-                "image_width": [],
-                "image_dimension": [],
-            }
+            # Append image attributes to the dictionary
+            needed_dict[image.property_id.property_id]["image_dimension"].append(image.image_dimension)
+            needed_dict[image.property_id.property_id]["image_height"].append(image.image_height)
+            needed_dict[image.property_id.property_id]["image_width"].append(image.image_width)
 
-        # Append image attributes to the dictionary
-        needed_dict[image.property_id.property_id]["image_dimension"].append(image.image_dimension)
-        needed_dict[image.property_id.property_id]["image_height"].append(image.image_height)
-        needed_dict[image.property_id.property_id]["image_width"].append(image.image_width)
-
-        if (idx + 1) % 10_000 == 0:
-            print(f"{idx+1}/{length} images")
-    
-    property_ids = list(update_images.keys())
-    chunks = [property_ids[i:i + chunk_size] for i in range(0, len(property_ids), chunk_size)]
-    
-    for chunk in chunks:
-        image_dimensions_to_update = ImageDimensions.objects.filter(property_id__in=chunk)
+        property_ids = list(update_images.keys())
+        image_dimensions_to_update = ImageDimensions.objects.filter(property_id__in=property_ids)
         
         for image_dimensions in image_dimensions_to_update:
             update_data = update_images.get(image_dimensions.property_id)
@@ -66,28 +65,25 @@ def total_pixels():
             ],
             batch_size=5000
         )
-    
-    images_to_create = [
-        ImageDimensions(
-            property_id = property_id,
-            total_pixels = sum(values["image_dimension"]),
-            avg_image_height = mean(values["image_height"]),
-            avg_image_width = mean(values["image_width"]),
-            num_images = len(values["image_dimension"]),
-        ) for property_id, values in create_images.items()
-    ]
-    
-    ImageDimensions.objects.bulk_create(
-        images_to_create,
-        batch_size=5000,
-        ignore_conflicts=True
-    )
-    
-    property_ids = list(create_images.keys())
-    chunks = [property_ids[i:i + chunk_size] for i in range(0, len(property_ids), chunk_size)]
-
-    for chunk in chunks:
-        properties_to_update = PropertyData.objects.filter(property_id__in=chunk)
+        
+        images_to_create = [
+            ImageDimensions(
+                property_id = property_id,
+                total_pixels = sum(values["image_dimension"]),
+                avg_image_height = mean(values["image_height"]),
+                avg_image_width = mean(values["image_width"]),
+                num_images = len(values["image_dimension"]),
+            ) for property_id, values in create_images.items()
+        ]
+        
+        ImageDimensions.objects.bulk_create(
+            images_to_create,
+            batch_size=5000,
+            ignore_conflicts=True
+        )
+        
+        property_ids = list(create_images.keys())
+        properties_to_update = PropertyData.objects.filter(property_id__in=property_ids)
         
         for property_data in properties_to_update:
             total_pixels_obj = ImageDimensions.objects.get(property_id = property_data.property_id)
@@ -100,35 +96,30 @@ def total_pixels():
         )
 
 def station_distances():
-    elements = StationDistance.objects.all()
-    length = len(elements)
-    map = defaultdict(list)
-    for idx, item in enumerate(elements):
-        map[item.property_id.property_id].append(item.station_distance)
-        if (idx + 1) % 10_000 == 0:
-            print(f"{idx+1}/{length} stations")
-    
-    stations_to_create = []
-    for property_id, stations in map.items():
-        instance = AverageDistanceFromStation(
-            property_id = property_id,
-            avg_distance = mean(stations),
-            number_of_stations = len(stations)
+    ids = list(divide_chunks(StationDistance.objects.all().values_list("property_id", flat=True).distinct()))
+    for idx, chunk in enumerate(ids):
+        map = defaultdict(list)
+        print(f"Station distance chunk: {idx+1}/{len(ids)} begun")
+        elements = StationDistance.objects.filter(property_id__in=chunk)    
+        for item in elements:
+            map[item.property_id.property_id].append(item.station_distance)
+        
+        stations_to_create = []
+        for property_id, stations in map.items():
+            instance = AverageDistanceFromStation(
+                property_id = property_id,
+                avg_distance = mean(stations),
+                number_of_stations = len(stations)
+            )
+            
+            stations_to_create.append(instance)
+        
+        AverageDistanceFromStation.objects.bulk_create(
+            stations_to_create,
+            batch_size=5000,
+            ignore_conflicts=True,
         )
         
-        stations_to_create.append(instance)
-    
-    AverageDistanceFromStation.objects.bulk_create(
-        stations_to_create,
-        batch_size=5000,
-        ignore_conflicts=True,
-    )
-    
-    chunk_size = 10_000
-    property_ids = list(map.keys())
-    chunks = [property_ids[i:i + chunk_size] for i in range(0, len(property_ids), chunk_size)]
-
-    for chunk in chunks:
         properties_to_update = PropertyData.objects.filter(property_id__in=chunk)
         
         for property_data in properties_to_update:
@@ -219,35 +210,76 @@ def ever_premium():
             ["ever_premium"],
             batch_size=5000
         )
-
-
     
 def test():
-    # elements = KeyFeature.objects.all().values_list("feature", flat=True)
-    # properties = PropertyData.objects.filter(property_url__isnull=False)
-    # num_properties = len(properties)
-    # hashmap = defaultdict(int)
-    
-    # for element in elements:
-    #     hashmap[element] += 1
-    # sorted_hashmap = sorted(hashmap.items(), key=itemgetter(1), reverse=True)
+    ids = list(divide_chunks(PremiumListing.objects.all().values_list("property_id", flat=True).distinct()))
+    for idx, chunk in enumerate(ids):
+        print(f"Ever premium chunk: {idx+1}/{len(ids)} begun")
+        elements = PremiumListing.objects.filter(property_id__in=chunk)
+        already_created = EverPremium.objects.all().values_list("property_id", flat=True).distinct()
+        
+        create_ever_premium = {}
+        update_ever_premium = {}
+        for element in elements:
+            if element.property_id.property_id in already_created or element.property_id.property_id in update_ever_premium:
+                needed_dict = update_ever_premium
+            else:
+                needed_dict = create_ever_premium
+            
+            # Check if the property_id is already in the dictionary
+            if element.property_id.property_id not in needed_dict:
+                needed_dict[element.property_id.property_id] = {
+                    "ever_premium" : [],
+                    "ever_featured" : [],
+                }
 
-    # cap = 0
-    # for key, value in sorted_hashmap:
-    #     cap += 1
-    #     if value/num_properties < 0.01:
-    #         break
-    
-    # for key, value in sorted_hashmap[:cap]:
-    #     print(f"Key: {key}, Count: {value}")
-    # images = [image.image_binary for image in Image.objects.filter(property_id__property_id = "100010531")]
-    # for idx, image in enumerate(images):
-    #     file_path = './' + f"{idx}.png"  # Update the path as needed
+            # Append element attributes to the dictionary
+            needed_dict[element.property_id.property_id]["ever_premium"].append(element.premium_listing)
+            needed_dict[element.property_id.property_id]["ever_featured"].append(element.featured_property)
+        
+        property_ids = list(update_ever_premium.keys())
+        
+        ever_premium_to_update = EverPremium.objects.filter(property_id__in=property_ids)
+        
+        for ever_premium in ever_premium_to_update:
+            update_data = update_ever_premium.get(ever_premium.property_id)
+            ever_premium.ever_featured = max(update_data.get("ever_featured"))
+            ever_premium.ever_premium = max(update_data.get("ever_premium"))
+        
+        EverPremium.objects.bulk_update(
+            ever_premium_to_update,
+            [
+                "ever_featured",
+                "ever_premium",
+            ],
+            batch_size=5000
+        )
+        
+        ever_premiums_to_create = [
+            EverPremium(
+                property_id = property_id,
+                ever_premium = max(values["ever_premium"]),
+                ever_featured = max(values["ever_featured"]),
+            ) for property_id, values in create_ever_premium.items()
+        ]
+        
+        EverPremium.objects.bulk_create(
+            ever_premiums_to_create,
+            batch_size=5000,
+            ignore_conflicts=True
+        )
+        
+        
+        property_ids = list(create_ever_premium.keys())
+        
+        properties_to_update = PropertyData.objects.filter(property_id__in=property_ids)
+        
+        for property_data in properties_to_update:
+            ever_premium_obj = EverPremium.objects.get(property_id = property_data.property_id)
+            property_data.ever_premium = ever_premium_obj
 
-    #     # Write the binary data to a file
-    #     with open(file_path, 'wb') as f:
-    #         f.write(image)
-
-    #     # Print a message indicating the file has been saved
-    #     print(f"Image file saved as: {file_path}")
-    ...
+        PropertyData.objects.bulk_update(
+            properties_to_update,
+            ["ever_premium"],
+            batch_size=5000
+        )
