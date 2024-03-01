@@ -1,6 +1,7 @@
 import scrapy
 from time import time
 from spiders.basespider import BasespiderSpider
+import psutil   
 
 class ImageSpider(BasespiderSpider):
     name = "image"
@@ -9,10 +10,14 @@ class ImageSpider(BasespiderSpider):
         super().__init__(*args, **kwargs)
     
     def parse(self, response):
+        if psutil.virtual_memory()[2] > 90:
+            self.closed("reason")
+            
         data = response.meta.get("db_data")
         self.insert_dict[data["pk"]] = {"image_file":response.body}
         self.count += 1
         print(f"Number of imagess scraped: {self.count}, progress % {(self.count/self.num_urls)*100:.2f}", end="\r")
+            
         self.check_time_limit()
         
         if self.count % 100 == 0:
@@ -25,6 +30,7 @@ class ImageSpider(BasespiderSpider):
         
     def closed(self, reason):
         self.close_spider(reason)
+        self.crawler.engine.close_spider(self, reason)
     
     def close_spider(self, reason):
         try:
@@ -33,4 +39,5 @@ class ImageSpider(BasespiderSpider):
         except Exception as e:                
             print(e)
             self.insert_data.clear()
+        super().close_spider(reason)
         

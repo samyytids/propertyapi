@@ -112,5 +112,5 @@ class FilterView(APIView):
     
 class KeyFeatureView(APIView):
     def get(self, request, *args, **kwargs):
-        properties = set(KeyFeature.objects.values_list("feature", flat=True))                
+        properties = KeyFeature.objects.values_list("feature", flat=True).distinct()
         return Response(properties, status=status.HTTP_200_OK)

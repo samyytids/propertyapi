@@ -1,8 +1,10 @@
 import django
-from django.db.models import Avg, Count, Sum, Case, When, Value, BooleanField
-from django.db.models.functions import Coalesce
+from django.db.models import Avg, Count, Sum, Case, When, Value, IntegerField, Max, F, Q
+from django.db.models.functions import Coalesce, Cast
 import os
 import sys
+import numpy as np
+from scipy.sparse import csr_matrix
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
@@ -14,22 +16,25 @@ from collections import defaultdict
 import time
 
 def divide_chunks(l, n=10_000): 
-    # looping till length l 
     for i in range(0, len(l), n):  
         yield l[i:i + n] 
 
 def total_pixels():
-    ids = list(divide_chunks(Image.objects.filter(image_scraped=True, image_dimension__isnull=False).values_list("property_id", flat=True).distinct()))
+    image_ids = set(Image.objects.filter(image_scraped=True, image_dimension__isnull=False).values_list("property_id__property_id", flat=True).distinct())
+    image_dimension_ids = set(ImageDimensions.objects.values_list("property_id", flat=True))
+    ids = list(divide_chunks(list(image_ids-image_dimension_ids)))
     for idx, chunk in enumerate(ids):
         print(f"Image chunk: {idx+1}/{len(ids)} begun")
-        images = Image.objects.filter(property_id__in = chunk, image_scraped=True, image_dimension__isnull=False)\
+        images = Image.objects\
             .values("property_id__property_id")\
             .annotate(
                 total_pixels=Sum("image_dimension"),
                 avg_height=Avg("image_height"),
                 avg_width=Avg("image_width"),
                 num_images=Count("id"),
-            )
+                null_count=Count("id", filter = Q(image_binary__isnull=True))
+            )\
+            .filter(property_id__in = chunk, null_count__gt=1)
         already_created = ImageDimensions.objects.all().values_list("property_id", flat=True).distinct()
         create_images = {}
         update_images = {}
@@ -91,17 +96,26 @@ def total_pixels():
         ) 
 
 def station_distances():
-    ids = list(divide_chunks(StationDistance.objects.all().values_list("property_id__property_id", flat=True).distinct()))
+    ids = list(
+        divide_chunks(
+            StationDistance.objects.filter(
+                property_id__avg_station_distance__isnull=True
+            )\
+            .values_list(
+                "property_id__property_id", flat=True
+            )\
+            .distinct()
+        )
+    )
+    
     for idx, chunk in enumerate(ids):
-        map = defaultdict(list)
         print(f"Station distance chunk: {idx+1}/{len(ids)} begun")
-        elements = StationDistance.objects.filter(property_id__in=chunk)\
+        elements = StationDistance.objects.filter(property_id__property_id__in=chunk)\
             .values("property_id__property_id")\
             .annotate(
                 avg_distance = Avg("station_distance"),
                 number_of_stations = Count("station_distance"),
             )
-
         stations_to_create = [
             AverageDistanceFromStation(property_id = property.get("property_id__property_id"),
             avg_distance = property.get("avg_distance"),
@@ -133,22 +147,8 @@ def ever_premium():
         elements = PremiumListing.objects.filter(property_id__in=chunk)\
             .values("property_id__property_id")\
             .annotate(
-                ever_premium = Coalesce(
-                        Case(
-                            When(premium_listing = True, then=Value(True)),
-                            default=Value(False),
-                            output_field=BooleanField()
-                        ),
-                        Value(False)
-                    ),
-                ever_featured = Coalesce(
-                        Case(
-                            When(featured_property = True, then=Value(True)),
-                            default=Value(False),
-                            output_field=BooleanField()
-                        ),
-                        Value(False)
-                    ),
+                ever_premium = Max(Cast("premium_listing", output_field=IntegerField())),
+                ever_featured = Max(Cast("featured_property", output_field=IntegerField())),
             )
         already_created = EverPremium.objects.all().values_list("property_id", flat=True).distinct()
         
@@ -210,4 +210,40 @@ def ever_premium():
     print(end-start)
     
 def test():
-    print("no test function atm")
+    # lists = [
+    #     (1,3,6),
+    #     (7,9,14),
+    #     (99,35,12,65,27),
+    #     (13, 15, 15, 15, 12),
+    # ]
+    # data = []
+    # property_id = 0
+    # for list in lists:
+    #     item = ReducedFeatures(
+    #         property_id = str(property_id),
+    #         reduced_feature_list = list,
+    #     )
+    #     property_id += 1
+    #     data.append(item)
+        
+    # ReducedFeatures.objects.bulk_create(
+    #     data,
+    # )
+    items = ReducedFeatures.objects.all().values("property_id", "reduced_feature_list")
+    
+    row = []
+    col = []
+    data = []
+    row_index = 0
+    for item in items:
+        for element in item["reduced_feature_list"]:
+            row.append(row_index)
+            col.append(element)
+            data.append(1)
+        row_index += 1
+    
+    rows = max(row) + 1
+    cols = max(col) + 1
+    matrix = csr_matrix((data, (row, col)), shape=(rows, cols))
+    print(matrix)
+            

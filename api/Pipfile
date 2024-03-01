@@ -87,6 +87,7 @@ urllib3 = "==2.1.0"
 uvicorn = "==0.24.0.post1"
 w3lib = "==2.1.2"
 "zope.interface" = "==6.1"
+psutil = "*"
 
 [dev-packages]
 

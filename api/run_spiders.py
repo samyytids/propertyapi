@@ -168,4 +168,5 @@ if __name__ == "__main__":
         })
         
         crawl_sequentially(process=process, crawlers=crawlers)
-        process.start()    
+        process.start()  
+          

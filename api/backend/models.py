@@ -10,7 +10,7 @@ class Property(models.Model):
     removed = models.BooleanField(default=False)
     stc = models.BooleanField(default=False)
     property_data = models.OneToOneField("PropertyData", on_delete=models.CASCADE, null=True)
-
+    models.JSONField
     class Meta:
         db_table = "property"
         ordering = ["property_id"]
@@ -320,3 +320,7 @@ class EverPremium(models.Model):
     
     class Meta: 
         db_table = "ever_premium"
+        
+class ReducedFeatures(models.Model):
+    property_id = models.CharField(max_length=15, unique=True)
+    reduced_feature_list = models.JSONField()
