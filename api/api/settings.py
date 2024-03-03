@@ -91,7 +91,7 @@ DATABASES = {
 # DATABASES = {
 #     "default": {
 #         "ENGINE": os.environ.get("SQL_ENGINE", "django.db.backends.postgresql"),
-#         "NAME": os.environ.get("SQL_DB", "property_api2"),
+#         "NAME": os.environ.get("SQL_DB", "property_api3"),
 #         "USER": os.environ.get("SQL_USER", "samyytids"),
 #         "PASSWORD": os.environ.get("SQL_PASSWORD", "Pokemon11"),
 #         "HOST": os.environ.get("SQL_HOST", "localhost"),

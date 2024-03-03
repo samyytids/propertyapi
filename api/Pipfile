@@ -88,6 +88,8 @@ uvicorn = "==0.24.0.post1"
 w3lib = "==2.1.2"
 "zope.interface" = "==6.1"
 psutil = "*"
+djangorestframework = "*"
+scikit-learn = "==1.4.0"
 
 [dev-packages]
 

@@ -1,19 +1,14 @@
-import django
-from django.db.models import Avg, Count, Sum, Case, When, Value, IntegerField, Max, F, Q
-from django.db.models.functions import Coalesce, Cast
-import os
-import sys
-import numpy as np
-from scipy.sparse import csr_matrix
+import django, os, sys, joblib, json, io
+from django.db.models import Avg, Count, Sum, IntegerField, Max, Q
+from django.db.models.functions import Cast
+from collections import defaultdict
+from backend.models import *
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'api.settings'
 django.setup()
-
-from backend.models import *
-from collections import defaultdict
-import time
 
 def divide_chunks(l, n=10_000): 
     for i in range(0, len(l), n):  
@@ -34,55 +29,24 @@ def total_pixels():
                 num_images=Count("id"),
                 null_count=Count("id", filter = Q(image_binary__isnull=True))
             )\
-            .filter(property_id__in = chunk, null_count__gt=1)
-        already_created = ImageDimensions.objects.all().values_list("property_id", flat=True).distinct()
-        create_images = {}
-        update_images = {}
-        for idx, image in enumerate(images):
-            if image.get("property_id") in already_created or image.get("property_id") in update_images:
-                needed_dict = update_images
-            else:
-                needed_dict = create_images
+            .filter(property_id__property_id__in = chunk, null_count__lt=1)
             
-            needed_dict[image.get("property_id__property_id")] = image
-
-        property_ids = list(update_images.keys())
-        image_dimensions_to_update = ImageDimensions.objects.filter(property_id__in=property_ids)
+        values = defaultdict(ImageDimensions)
+        for idx, image in enumerate(images):
+            property_id = image["property_id__property_id"]
+            values[property_id].property_id = property_id
+            values[property_id].total_pixels = image["total_pixels"]
+            values[property_id].avg_image_height = image["avg_height"]
+            values[property_id].avg_image_width = image["avg_width"]
+            values[property_id].num_images = image["num_images"]
         
-        for image_dimensions in image_dimensions_to_update:
-            update_data = update_images.get(image_dimensions.property_id)
-            image_dimensions.avg_image_height = update_data.get("avg_height")
-            image_dimensions.avg_image_width = update_data.get("avg_width")
-            image_dimensions.total_pixels = update_data.get("total_pixels")
-            image_dimensions.num_images = update_data.get("num_images")
-        
-        ImageDimensions.objects.bulk_update(
-            image_dimensions_to_update,
-            [
-                "avg_image_height",
-                "avg_image_width",
-                "total_pixels",
-                "num_images",
-            ],
-            batch_size=5000
-        )
-        
-        images_to_create = [
-            ImageDimensions(
-                property_id = property_id,
-                total_pixels = values["total_pixels"],
-                avg_image_height = values["avg_height"],
-                avg_image_width = values["avg_width"],
-                num_images = values["num_images"],
-            ) for property_id, values in create_images.items()
-        ]
         ImageDimensions.objects.bulk_create(
-            images_to_create,
+            list(values.values()),
             batch_size=5000,
             ignore_conflicts=True
         )
         
-        property_ids = list(create_images.keys())
+        property_ids = list(values.keys())
         properties_to_update = PropertyData.objects.filter(property_id__in=property_ids)
         
         for property_data in properties_to_update:
@@ -140,7 +104,6 @@ def station_distances():
         )
         
 def ever_premium():
-    start = time.time()
     ids = list(divide_chunks(PremiumListing.objects.all().values_list("property_id", flat=True).distinct()))
     for idx, chunk in enumerate(ids):
         print(f"Ever premium chunk: {idx+1}/{len(ids)} begun")
@@ -152,23 +115,28 @@ def ever_premium():
             )
         already_created = EverPremium.objects.all().values_list("property_id", flat=True).distinct()
         
-        create_ever_premium = {}
-        update_ever_premium = {}
+        create_ever_premium = defaultdict(EverPremium)
+        update_ever_premium = defaultdict(EverPremium)
         for element in elements:
             if element.get("property_id") in already_created or element.get("property_id") in update_ever_premium:
                 needed_dict = update_ever_premium
             else:
                 needed_dict = create_ever_premium
             
-            needed_dict[element.get("property_id__property_id")] = element
+            property_id = element.get("property_id__property_id")
+
+            needed_dict[property_id].property_id = property_id
+            needed_dict[property_id].ever_featured = element.get("every_featured")
+            needed_dict[property_id].ever_premium = element.get("ever_premium")
+            
         property_ids = list(update_ever_premium.keys())
         
         ever_premium_to_update = EverPremium.objects.filter(property_id__in=property_ids)
         
         for ever_premium in ever_premium_to_update:
             update_data = update_ever_premium.get(ever_premium.property_id)
-            ever_premium.ever_featured = update_data.get("ever_featured")
-            ever_premium.ever_premium = update_data.get("ever_premium")
+            ever_premium.ever_featured = update_data.ever_featured
+            ever_premium.ever_premium = update_data.ever_premium
         
         EverPremium.objects.bulk_update(
             ever_premium_to_update,
@@ -179,16 +147,8 @@ def ever_premium():
             batch_size=5000
         )
         
-        ever_premiums_to_create = [
-            EverPremium(
-                property_id = property_id,
-                ever_premium = values["ever_premium"],
-                ever_featured = values["ever_featured"],
-            ) for property_id, values in create_ever_premium.items()
-        ]
-        
         EverPremium.objects.bulk_create(
-            ever_premiums_to_create,
+            list(create_ever_premium.values()),
             batch_size=5000,
             ignore_conflicts=True
         )
@@ -206,44 +166,43 @@ def ever_premium():
             ["ever_premium"],
             batch_size=5000
         )
-    end = time.time()
-    print(end-start)
     
-def test():
-    # lists = [
-    #     (1,3,6),
-    #     (7,9,14),
-    #     (99,35,12,65,27),
-    #     (13, 15, 15, 15, 12),
-    # ]
-    # data = []
-    # property_id = 0
-    # for list in lists:
-    #     item = ReducedFeatures(
-    #         property_id = str(property_id),
-    #         reduced_feature_list = list,
-    #     )
-    #     property_id += 1
-    #     data.append(item)
-        
-    # ReducedFeatures.objects.bulk_create(
-    #     data,
-    # )
-    items = ReducedFeatures.objects.all().values("property_id", "reduced_feature_list")
+def reduce_keyfeatures():
+    ids = list(divide_chunks(KeyFeature.objects.all().values_list("property_id", flat=True).distinct()))
+    for idx, chunk in enumerate(ids):
+        print(f"Key feature chunk: {idx+1}/{len(ids)} begun")
+        model = joblib.load("model.joblib")
+        vectorizer = joblib.load("vectorizer.joblib")
+        data = KeyFeature.objects.filter(property_id__property_data__reduced_features__isnull=True, property_id__in=chunk).values_list("feature", "property_id__property_id")
+        if len(data) == 0:
+            continue
     
-    row = []
-    col = []
-    data = []
-    row_index = 0
-    for item in items:
-        for element in item["reduced_feature_list"]:
-            row.append(row_index)
-            col.append(element)
-            data.append(1)
-        row_index += 1
-    
-    rows = max(row) + 1
-    cols = max(col) + 1
-    matrix = csr_matrix((data, (row, col)), shape=(rows, cols))
-    print(matrix)
+        data, ids = [list(x) for x in zip(*data)]
+        X = vectorizer.transform(data)
+        new_cluster_labels = model.predict(X)
+        values = defaultdict(ReducedFeatures)
+        for idx, label in enumerate(new_cluster_labels):
             
+            values[ids[idx]].property_id = ids[idx]
+            if values[ids[idx]].reduced_feature_list is None:
+                values[ids[idx]].reduced_feature_list = []
+            values[ids[idx]].reduced_feature_list.append(int(label+1))
+
+        ReducedFeatures.objects.bulk_create(
+            values.values(),
+            ignore_conflicts=True
+        )
+        
+        properties_to_update = PropertyData.objects.filter(property_id__in=ids)
+        for property_data in properties_to_update:
+            reduced_features_obj = ReducedFeatures.objects.get(property_id = property_data.property_id)
+            property_data.reduced_features = reduced_features_obj
+
+        PropertyData.objects.bulk_update(
+            properties_to_update,
+            ["reduced_features"],
+            batch_size=5000
+        )
+
+def test():
+    ...

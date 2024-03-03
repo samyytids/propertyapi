@@ -1,3 +1,5 @@
 *.png
 *.sqlite3
 *.json
+settings.py
+*.joblib

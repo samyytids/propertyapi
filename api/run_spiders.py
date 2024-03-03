@@ -1,6 +1,5 @@
-import django
-import os
-import sys
+import django, sys, os
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
@@ -9,17 +8,13 @@ django.setup()
 
 from backend.models import *
 from scrapers.scrapers.spiders.sitemap import SitemapSpider
-from scrapers.scrapers.spiders.property_pal import PropertyPalSpider
 from scrapers.scrapers.spiders.rightmove import RightmoveSpider
 from scrapers.scrapers.spiders.image import ImageSpider
 from scrapers.scrapers.spiders.epc import EpcSpider
 from scrapy.crawler import CrawlerProcess
-from django.db.models import Q
 from pre_scrape_epcs import pre_scrape_epcs
-from django.db.models.base import ModelState
-from django.db.models import Q, Avg, Count, ExpressionWrapper, Sum, F, IntegerField, Max
-from django.db.models.functions import Length, Cast
-from functions import total_pixels, station_distances, ever_premium, test
+from django.db.models import Q
+from functions import total_pixels, station_distances, ever_premium, test, reduce_keyfeatures
 
 process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
@@ -138,14 +133,18 @@ if __name__ == "__main__":
         elif arg == "station_distances":
             station_distances()
         elif arg == "key_features":
-            print(arg)
+            reduce_keyfeatures()
         elif arg == "test": 
             test()
         elif arg == "property_data": 
             crawlers = [RightmoveSpider]
             scrape = True
-        elif arg == "list":
+        elif arg == "images":
+            crawlers = [ImageSpider]
+            scrape = True
+        else:  
             print(
+                "You made a typeo, try one of these:"
                 "ever_premium",
                 "total_pixels",
                 "station_distances",
@@ -153,11 +152,9 @@ if __name__ == "__main__":
                 "test",
                 "property_data",
                 "or nothing to do basic scrape",
-                "anything else will scrape images"
+                "anything else will scrape images",
+                sep="\n"
             )
-        else:
-            crawlers = [ImageSpider]
-            scrape = True
     
     if scrape:
         process = CrawlerProcess(settings={

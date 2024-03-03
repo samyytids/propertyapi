@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 class Property(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
@@ -48,6 +49,7 @@ class PropertyData(models.Model):
     total_pixels = models.OneToOneField("ImageDimensions", on_delete=models.CASCADE, null=True)
     avg_station_distance = models.OneToOneField("AverageDistanceFromStation", on_delete=models.CASCADE, null=True)
     ever_premium = models.OneToOneField("EverPremium", on_delete=models.CASCADE, null=True)
+    reduced_features = models.OneToOneField("ReducedFeatures", on_delete=models.CASCADE, null=True)
     first_scraped = models.DateField()
     class Meta:
         db_table = "property_data"
@@ -323,4 +325,4 @@ class EverPremium(models.Model):
         
 class ReducedFeatures(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
-    reduced_feature_list = models.JSONField()
+    reduced_feature_list = ArrayField(models.IntegerField())
