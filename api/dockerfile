@@ -23,9 +23,6 @@ RUN echo "$(cat /app/.env.dev)" \
 RUN echo "0 0 * * * root bash -c /commands/run_spiders.sh > /app/cron.log 2>&1" \
     >> /etc/crontab
 
-RUN python manage.py makemigrations
-RUN python manage.py migrate
-
 RUN touch /app/cron.log
 
 CMD ["cron", "-f"]
