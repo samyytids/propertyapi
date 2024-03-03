@@ -326,3 +326,6 @@ class EverPremium(models.Model):
 class ReducedFeatures(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
     reduced_feature_list = ArrayField(models.IntegerField())
+    
+    class Meta: 
+        db_table = "reduced_features"
