@@ -1,5 +1,5 @@
 import django, os, sys, joblib, json, io
-from django.db.models import Avg, Count, Sum, IntegerField, Max, Q
+from django.db.models import Avg, Count, Sum, IntegerField, Max, Q, Min
 from django.db.models.functions import Cast
 from collections import defaultdict
 from backend.models import *
@@ -27,10 +27,10 @@ def total_pixels():
                 avg_height=Avg("image_height"),
                 avg_width=Avg("image_width"),
                 num_images=Count("id"),
-                null_count=Count("id", filter = Q(image_binary__isnull=True))
+                all_scraped = Min(Cast("image_scraped", output_field=IntegerField())),
             )\
-            .filter(property_id__property_id__in = chunk, null_count__lt=1)
-            
+            .filter(property_id__property_id__in = chunk, all_scraped=1)
+
         values = defaultdict(ImageDimensions)
         for idx, image in enumerate(images):
             property_id = image["property_id__property_id"]
@@ -118,7 +118,7 @@ def ever_premium():
         create_ever_premium = defaultdict(EverPremium)
         update_ever_premium = defaultdict(EverPremium)
         for element in elements:
-            if element.get("property_id") in already_created or element.get("property_id") in update_ever_premium:
+            if element.get("property_id__property_id") in already_created or element.get("property_id__property_id") in update_ever_premium:
                 needed_dict = update_ever_premium
             else:
                 needed_dict = create_ever_premium
@@ -126,17 +126,18 @@ def ever_premium():
             property_id = element.get("property_id__property_id")
 
             needed_dict[property_id].property_id = property_id
-            needed_dict[property_id].ever_featured = element.get("every_featured")
+            needed_dict[property_id].ever_featured = element.get("ever_featured")
             needed_dict[property_id].ever_premium = element.get("ever_premium")
             
         property_ids = list(update_ever_premium.keys())
-        
         ever_premium_to_update = EverPremium.objects.filter(property_id__in=property_ids)
         
         for ever_premium in ever_premium_to_update:
             update_data = update_ever_premium.get(ever_premium.property_id)
             ever_premium.ever_featured = update_data.ever_featured
             ever_premium.ever_premium = update_data.ever_premium
+        
+        print(ever_premium_to_update)
         
         EverPremium.objects.bulk_update(
             ever_premium_to_update,
@@ -168,9 +169,9 @@ def ever_premium():
         )
     
 def reduce_keyfeatures():
-    ids = list(divide_chunks(KeyFeature.objects.all().values_list("property_id", flat=True).distinct()))
-    for idx, chunk in enumerate(ids):
-        print(f"Key feature chunk: {idx+1}/{len(ids)} begun")
+    init_ids = list(divide_chunks(KeyFeature.objects.all().values_list("property_id", flat=True).distinct()))
+    for i, chunk in enumerate(init_ids):
+        print(f"Key feature chunk: {i+1}/{len(init_ids)} begun")
         model = joblib.load("model.joblib")
         vectorizer = joblib.load("vectorizer.joblib")
         data = KeyFeature.objects.filter(property_id__property_data__reduced_features__isnull=True, property_id__in=chunk).values_list("feature", "property_id__property_id")
@@ -201,6 +202,31 @@ def reduce_keyfeatures():
         PropertyData.objects.bulk_update(
             properties_to_update,
             ["reduced_features"],
+            batch_size=5000
+        )
+
+def description_length():
+    ids = list(
+        divide_chunks(
+            Text.objects.filter(
+                description_length__isnull=True
+            )\
+            .values_list(
+                "property_id", flat=True
+            )\
+            .distinct()
+        )
+    )
+    for idx, chunk in enumerate(ids):
+        print(f"Text length chunk: {idx+1}/{len(ids)} begun")
+        elements = Text.objects.filter(property_id__in=chunk)\
+        
+        for element in elements:
+            element.description_length = len(element.description)
+        
+        Text.objects.bulk_update(
+            elements,
+            ["description_length"],
             batch_size=5000
         )
 

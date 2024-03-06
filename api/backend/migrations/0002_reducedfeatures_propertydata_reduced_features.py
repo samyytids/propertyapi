@@ -23,9 +23,9 @@ class Migration(migrations.Migration):
                 'db_table': 'reduced_features',
             },
         ),
-        migrations.AddField(
-            model_name='propertydata',
-            name='reduced_features',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, to='backend.reducedfeatures'),
-        ),
+        # migrations.AddField(
+        #     model_name='propertydata',
+        #     name='reduced_features',
+        #     field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, to='backend.reducedfeatures'),
+        # ),
     ]

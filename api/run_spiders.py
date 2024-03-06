@@ -14,7 +14,7 @@ from scrapers.scrapers.spiders.epc import EpcSpider
 from scrapy.crawler import CrawlerProcess
 from pre_scrape_epcs import pre_scrape_epcs
 from django.db.models import Q
-from functions import total_pixels, station_distances, ever_premium, test, reduce_keyfeatures
+from functions import *
 
 process = CrawlerProcess(settings={
         "LOG_LEVEL":"INFO",
@@ -134,6 +134,8 @@ if __name__ == "__main__":
             station_distances()
         elif arg == "key_features":
             reduce_keyfeatures()
+        elif arg == "description_length":
+            description_length()
         elif arg == "test": 
             test()
         elif arg == "property_data": 
@@ -149,10 +151,11 @@ if __name__ == "__main__":
                 "total_pixels",
                 "station_distances",
                 "key_features",
-                "test",
                 "property_data",
+                "images",
+                "description_length",
+                "test",
                 "or nothing to do basic scrape",
-                "anything else will scrape images",
                 sep="\n"
             )
     
