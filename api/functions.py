@@ -222,7 +222,8 @@ def description_length():
         elements = Text.objects.filter(property_id__in=chunk)\
         
         for element in elements:
-            element.description_length = len(element.description)
+            if element.description:
+                element.description_length = len(element.description)
         
         Text.objects.bulk_update(
             elements,
