@@ -310,7 +310,7 @@ class ImageDimensions(models.Model):
 class AverageDistanceFromStation(models.Model):
     property_id = models.CharField(max_length=15, unique=True)
     avg_distance = models.DecimalField(max_digits=50, decimal_places=10, null=True)
-    number_of_stations = models.IntegerField(null=True)
+    6 = models.IntegerField(null=True)
     
     class Meta: 
         db_table = "average_station_distance"
