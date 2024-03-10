@@ -22,7 +22,7 @@ services:
       - POSTGRES_PASSWORD=Pokemon11
       - POSTGRES_DB=property_api
     volumes:
-      - postgres_data:/mnt/ssd1/var/lib/postgresql/data
+      - /mnt/ssd1:/mnt/ssd1
 
 volumes:
   postgres_data:
