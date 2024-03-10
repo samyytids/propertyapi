@@ -22,7 +22,12 @@ services:
       - POSTGRES_PASSWORD=Pokemon11
       - POSTGRES_DB=property_api
     volumes:
-      - /mnt/ssd1:/mnt/ssd1
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
   postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /path/on/host
