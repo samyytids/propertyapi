@@ -30,4 +30,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /path/on/host
+      device: /mnt/ssd1
